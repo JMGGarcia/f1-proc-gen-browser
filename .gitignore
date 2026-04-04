@@ -20,6 +20,9 @@ f1_proc_gen_alias
 # Personal notes
 idea.md
 
+# Claude Code
+.claude/
+
 # IDE
 .vscode/
 .idea/
