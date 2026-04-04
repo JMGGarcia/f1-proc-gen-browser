@@ -1,12 +1,12 @@
 from fastapi import APIRouter, Depends, HTTPException, Request
-from fastapi.templating import Jinja2Templates
 from sqlalchemy.orm import Session
 
 from db.models import Engine, EngineSeasonStats, Season, Team, TeamSeasonStats
 from db.session import get_db_session
 
+from web.templates_env import templates
+
 router = APIRouter(prefix="/engines")
-templates = Jinja2Templates(directory="web/templates")
 
 
 @router.get("/")

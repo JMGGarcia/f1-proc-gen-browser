@@ -1,13 +1,12 @@
 from fastapi import APIRouter, Depends, HTTPException, Request
-from fastapi.templating import Jinja2Templates
 from sqlalchemy.orm import Session
 
 from db.models import Driver, DriverSeasonStats, Engine, EngineSeasonStats, Season, Team, TeamSeasonStats
 from db.session import get_db_session
 from sim.flags import NATIONALITY_FLAGS
+from web.templates_env import templates
 
 router = APIRouter(prefix="/teams")
-templates = Jinja2Templates(directory="web/templates")
 
 
 @router.get("/")
@@ -72,11 +71,31 @@ def team_detail(team_id: int, request: Request, db: Session = Depends(get_db_ses
     for drv in unique_drivers:
         drv.flag = NATIONALITY_FLAGS.get(drv.nationality, "")
 
+    # Current roster: drivers whose latest DriverSeasonStats is with this team
+    latest_season = (
+        db.query(Season).filter_by(completed=True).order_by(Season.number.desc()).first()
+    )
+    current_drivers = []
+    if latest_season:
+        current_stats = (
+            db.query(DriverSeasonStats)
+            .filter_by(team_id=team_id, season_id=latest_season.id)
+            .all()
+        )
+        for cs in current_stats:
+            drv = db.query(Driver).filter_by(id=cs.driver_id, retired=False).first()
+            if drv:
+                drv.flag = NATIONALITY_FLAGS.get(drv.nationality, "")
+                drv.current_skill = int(cs.skill * 100)
+                drv.current_age = cs.age
+                current_drivers.append(drv)
+
     total_wins = sum(e.championship_position == 1 for e in season_history)
 
     return templates.TemplateResponse(request, "team_detail.html", {
         "team": team,
         "season_history": season_history,
         "unique_drivers": unique_drivers,
+        "current_drivers": current_drivers,
         "total_wins": total_wins,
     })

@@ -43,7 +43,7 @@ class WorldRunner:
         race_records, sorted_drivers, sorted_teams = season.run()
 
         self._write_race_results(db, season_id, race_records)
-        self._write_season_stats(db, season_id, sorted_drivers, sorted_teams)
+        self._write_season_stats(db, season_id, race_records, sorted_drivers, sorted_teams)
         db.query(m.Season).filter_by(id=season_id).update({"completed": True})
         db.flush()
 
@@ -83,13 +83,18 @@ class WorldRunner:
                     dnf=dnf,
                 ))
 
-    def _write_season_stats(self, db, season_id: int, sorted_drivers, sorted_teams):
+    def _write_season_stats(self, db, season_id: int, race_records, sorted_drivers, sorted_teams):
         # Build points maps
         driver_points = {d: pts for d, pts in sorted_drivers}
         team_points = {t: pts for t, pts in sorted_teams}
 
-        # Wins: count position=1 race results for this season
-        season_wins: dict = {}
+        # Pre-count wins per driver from race_records
+        win_counts: dict = {}
+        for _track, results in race_records:
+            if results:
+                winner = results[0][0]
+                win_counts[winner.db_id] = win_counts.get(winner.db_id, 0) + 1
+
         for pos, (driver, _) in enumerate(sorted_drivers, 1):
             db.add(m.DriverSeasonStats(
                 driver_id=driver.db_id,
@@ -101,7 +106,7 @@ class WorldRunner:
                 top_skill=driver.top_skill,
                 total_points=driver_points.get(driver, 0),
                 championship_position=pos,
-                wins=0,  # updated after flush via race results
+                wins=win_counts.get(driver.db_id, 0),
             ))
 
         for pos, (team, _) in enumerate(sorted_teams, 1):

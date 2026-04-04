@@ -29,8 +29,8 @@ def is_busy() -> bool:
     return _busy
 
 
-def simulate_one(next_season_num: int) -> bool:
-    """Spawn a background thread to run one season. Returns False if already running."""
+def simulate_many(start_season_num: int, count: int) -> bool:
+    """Spawn a background thread to run `count` seasons. Returns False if already running."""
     global _busy
     with _lock:
         if _busy or _runner is None:
@@ -41,8 +41,9 @@ def simulate_one(next_season_num: int) -> bool:
         global _busy
         try:
             from db.session import get_session
-            with get_session() as db:
-                _runner.run_one_season(db, next_season_num)
+            for n in range(count):
+                with get_session() as db:
+                    _runner.run_one_season(db, start_season_num + n)
         finally:
             _busy = False
 

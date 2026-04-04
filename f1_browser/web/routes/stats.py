@@ -1,5 +1,4 @@
 from fastapi import APIRouter, Depends, Request
-from fastapi.templating import Jinja2Templates
 from sqlalchemy import func
 from sqlalchemy.orm import Session
 
@@ -7,8 +6,9 @@ from db.models import Driver, DriverSeasonStats, Engine, Team, TeamSeasonStats
 from db.session import get_db_session
 from sim.flags import NATIONALITY_FLAGS
 
+from web.templates_env import templates
+
 router = APIRouter(prefix="/stats")
-templates = Jinja2Templates(directory="web/templates")
 
 
 def _driver_champs(db):

@@ -1,5 +1,4 @@
 from fastapi import APIRouter, Depends, HTTPException, Request
-from fastapi.templating import Jinja2Templates
 from sqlalchemy.orm import Session
 
 from db.models import (
@@ -8,9 +7,9 @@ from db.models import (
 )
 from db.session import get_db_session
 from sim.flags import NATIONALITY_FLAGS
+from web.templates_env import templates
 
 router = APIRouter(prefix="/seasons")
-templates = Jinja2Templates(directory="web/templates")
 
 
 @router.get("/")

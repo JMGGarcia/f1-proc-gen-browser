@@ -1,14 +1,13 @@
 from fastapi import APIRouter, Depends, Request
-from fastapi.templating import Jinja2Templates
 from sqlalchemy.orm import Session
 
 from db.models import Driver, DriverSeasonStats, Season, Team, TeamSeasonStats, WorldEvent
 from db.session import get_db_session
 from sim.flags import NATIONALITY_FLAGS
 from web import sim_state
+from web.templates_env import templates
 
 router = APIRouter()
-templates = Jinja2Templates(directory="web/templates")
 
 
 @router.get("/")
@@ -33,8 +32,10 @@ def index(request: Request, db: Session = Depends(get_db_session)):
         drv = db.query(DriverSeasonStats).filter_by(season_id=s.id, championship_position=1).first()
         tm = db.query(TeamSeasonStats).filter_by(season_id=s.id, championship_position=1).first()
         driver_obj = db.query(Driver).filter_by(id=drv.driver_id).first() if drv else None
+        # Show the driver champion's team, not the constructor champion
+        driver_team_obj = db.query(Team).filter_by(id=drv.team_id).first() if (drv and drv.team_id) else None
         team_obj = db.query(Team).filter_by(id=tm.team_id).first() if tm else None
-        summaries.append({"season": s, "driver": driver_obj, "team": team_obj})
+        summaries.append({"season": s, "driver": driver_obj, "driver_team": driver_team_obj, "team": team_obj})
 
     return templates.TemplateResponse(request, "index.html", {
         "recent_events": recent_events,

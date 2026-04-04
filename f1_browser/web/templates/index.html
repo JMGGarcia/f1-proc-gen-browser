@@ -18,8 +18,12 @@
         <button class="sim-btn" disabled>▶ Simulating…</button>
         <span class="sim-busy">Season in progress</span>
       {% else %}
-        <form method="POST" action="/simulate" style="display:inline">
-          <button class="sim-btn" type="submit">▶ Simulate Season {{ total_seasons + 1 }}</button>
+        <form method="POST" action="/simulate" style="display:inline;display:flex;align-items:center;gap:8px">
+          <button class="sim-btn" type="submit">▶ Simulate</button>
+          <input type="number" name="count" value="1" min="1" max="100"
+            style="width:60px;background:#1a1d24;border:1px solid #2c2f38;color:#d8dce8;
+                   padding:7px 8px;border-radius:4px;font-family:inherit;font-size:13px;text-align:center">
+          <span style="color:var(--muted);font-size:13px">season(s) from {{ total_seasons + 1 }}</span>
         </form>
       {% endif %}
     {% else %}
@@ -45,6 +49,12 @@
       <td>
         {% if s.driver %}
         <a href="/drivers/{{ s.driver.id }}">{{ s.driver.first_name }} {{ s.driver.last_name }}</a>
+        {% if s.driver_team %}
+        <span class="team-badge"
+          style="background:{{ s.driver_team.color_primary }};color:{{ s.driver_team.color_secondary }};font-size:11px">
+          {{ s.driver_team.name }}
+        </span>
+        {% endif %}
         {% else %}—{% endif %}
       </td>
       <td>

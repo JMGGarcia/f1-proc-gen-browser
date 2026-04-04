@@ -68,6 +68,17 @@
       background: var(--border);
     }
 
+    .nav-champion {
+      margin-top: auto;
+      padding-top: 16px;
+      border-top: 1px solid var(--border);
+      font-size: 11px;
+      color: var(--muted);
+      line-height: 1.5;
+    }
+    .nav-champion .label { text-transform: uppercase; letter-spacing: 1px; }
+    .nav-champion .name { color: var(--text); font-size: 13px; }
+
     /* ── Main content ────────────────────────────────────────── */
     main {
       flex: 1;
@@ -236,6 +247,18 @@
     <a href="/teams">Teams</a>
     <a href="/engines">Engines</a>
     <a href="/stats">Statistics</a>
+    {% set ctx = nav_ctx() %}
+    {% if ctx.nav_champion %}
+    <div class="nav-champion">
+      <div class="label">Season {{ ctx.nav_season }} Champion</div>
+      <div class="name">
+        <a href="/drivers/{{ ctx.nav_champion.id }}">
+          {{ ctx.nav_champion.first_name }} {{ ctx.nav_champion.last_name }}
+        </a>
+      </div>
+
+    </div>
+    {% endif %}
   </nav>
   <main>
     {% block content %}{% endblock %}
