@@ -1,0 +1,62 @@
+{% extends "base.html" %}
+{% block title %}{{ engine.name }} — F1 World{% endblock %}
+
+{% block content %}
+<div class="breadcrumb">
+  <a href="/engines">Engines</a><span>›</span> {{ engine.name }}
+</div>
+
+{% from "macros.html" import team_badge %}
+
+<div class="page-header">
+  <h1>
+    <span class="engine-badge"
+      style="background:{{ engine.color_primary }};color:{{ engine.color_secondary }};font-size:18px;padding:4px 14px">
+      {{ engine.name | upper }}
+    </span>
+  </h1>
+</div>
+
+<div class="stat-row">
+  <div class="stat-card">
+    <div class="label">Championships</div>
+    <div class="value">{{ championship_wins }}</div>
+  </div>
+  <div class="stat-card">
+    <div class="label">Seasons supplied</div>
+    <div class="value">{{ season_stats | length }}</div>
+  </div>
+</div>
+
+<h2>SEASON HISTORY</h2>
+{% if season_stats %}
+<table class="data-table">
+  <thead>
+    <tr>
+      <th>Season</th>
+      <th class="num">Power</th>
+      <th class="num">Reliability</th>
+      <th>Teams</th>
+    </tr>
+  </thead>
+  <tbody>
+    {% for entry in season_stats %}
+    <tr>
+      <td><a href="/seasons/{{ entry.season_obj.number }}">Season {{ entry.season_obj.number }}</a></td>
+      <td class="num">{{ (entry.power * 100) | int }}</td>
+      <td class="num">{{ (entry.reliability * 100) | int }}</td>
+      <td>
+        {% for team in entry.teams %}
+          {{ team_badge(team) }}
+        {% else %}
+          —
+        {% endfor %}
+      </td>
+    </tr>
+    {% endfor %}
+  </tbody>
+</table>
+{% else %}
+<p>No data available.</p>
+{% endif %}
+{% endblock %}

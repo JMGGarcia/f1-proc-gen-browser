@@ -1,0 +1,36 @@
+{% extends "base.html" %}
+{% block title %}Engines — F1 World{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <h1>ENGINE SUPPLIERS</h1>
+</div>
+
+<table class="data-table">
+  <thead>
+    <tr>
+      <th>Engine</th>
+      <th class="num">Power</th>
+      <th class="num">Reliability</th>
+      <th class="pts">Championships</th>
+    </tr>
+  </thead>
+  <tbody>
+    {% for engine in engines %}
+    <tr>
+      <td>
+        <a href="/engines/{{ engine.id }}">
+          <span class="engine-badge"
+            style="background:{{ engine.color_primary }};color:{{ engine.color_secondary }}">
+            {{ engine.name }}
+          </span>
+        </a>
+      </td>
+      <td class="num">{{ engine.latest_power if engine.latest_power is not none else '—' }}</td>
+      <td class="num">{{ engine.latest_reliability if engine.latest_reliability is not none else '—' }}</td>
+      <td class="pts">{{ engine.championship_wins }}</td>
+    </tr>
+    {% endfor %}
+  </tbody>
+</table>
+{% endblock %}

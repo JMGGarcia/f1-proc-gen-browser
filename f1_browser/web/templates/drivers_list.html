@@ -1,0 +1,36 @@
+{% extends "base.html" %}
+{% block title %}Drivers — F1 World{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <h1>DRIVERS</h1>
+  <div class="subtitle">Active — {{ active_drivers | length }} drivers</div>
+</div>
+
+{% from "macros.html" import team_badge %}
+
+<table class="data-table">
+  <thead>
+    <tr>
+      <th>Driver</th>
+      <th>Nat</th>
+      <th>Team</th>
+      <th class="num">Age</th>
+      <th class="num">Skill</th>
+    </tr>
+  </thead>
+  <tbody>
+    {% for driver in active_drivers %}
+    <tr>
+      <td><a href="/drivers/{{ driver.id }}">{{ driver.first_name }} {{ driver.last_name }}</a></td>
+      <td class="flag">{{ driver.flag }}</td>
+      <td>
+        {% if driver.current_team %}{{ team_badge(driver.current_team) }}{% else %}—{% endif %}
+      </td>
+      <td class="num">{{ driver.display_age }}</td>
+      <td class="num">{{ driver.display_skill }}</td>
+    </tr>
+    {% endfor %}
+  </tbody>
+</table>
+{% endblock %}

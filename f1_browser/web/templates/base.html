@@ -1,0 +1,244 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>{% block title %}F1 World{% endblock %}</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg:        #111318;
+      --surface:   #1a1d24;
+      --border:    #2c2f38;
+      --text:      #d8dce8;
+      --muted:     #6b7280;
+      --accent:    #e53935;
+      --link:      #60a5fa;
+      --link-hover:#93c5fd;
+      --nav-w:     220px;
+    }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: 'Courier New', Courier, monospace;
+      font-size: 14px;
+      line-height: 1.6;
+      display: flex;
+      min-height: 100vh;
+    }
+
+    /* ── Navigation ─────────────────────────────────────────── */
+    nav {
+      width: var(--nav-w);
+      flex-shrink: 0;
+      background: var(--surface);
+      border-right: 1px solid var(--border);
+      padding: 24px 16px;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      position: sticky;
+      top: 0;
+      height: 100vh;
+      overflow-y: auto;
+    }
+
+    nav .logo {
+      font-size: 18px;
+      font-weight: bold;
+      color: var(--accent);
+      letter-spacing: 2px;
+      margin-bottom: 16px;
+      padding-bottom: 16px;
+      border-bottom: 1px solid var(--border);
+    }
+
+    nav a {
+      color: var(--muted);
+      text-decoration: none;
+      padding: 6px 10px;
+      border-radius: 4px;
+      transition: color 0.15s, background 0.15s;
+    }
+
+    nav a:hover, nav a.active {
+      color: var(--text);
+      background: var(--border);
+    }
+
+    /* ── Main content ────────────────────────────────────────── */
+    main {
+      flex: 1;
+      padding: 32px 40px;
+      max-width: 1100px;
+      overflow-x: auto;
+    }
+
+    h1 { font-size: 22px; color: #fff; margin-bottom: 6px; letter-spacing: 0.5px; }
+    h2 { font-size: 16px; color: #ccc; margin: 24px 0 12px; letter-spacing: 0.5px; }
+    p  { color: var(--muted); margin-bottom: 8px; }
+
+    .page-header {
+      border-bottom: 1px solid var(--border);
+      padding-bottom: 16px;
+      margin-bottom: 24px;
+    }
+
+    .subtitle { color: var(--muted); font-size: 12px; margin-top: 4px; }
+
+    /* ── Links ───────────────────────────────────────────────── */
+    a { color: var(--link); text-decoration: none; }
+    a:hover { color: var(--link-hover); text-decoration: underline; }
+
+    /* ── Tables ──────────────────────────────────────────────── */
+    .data-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 13px;
+      margin-bottom: 32px;
+    }
+
+    .data-table th {
+      text-align: left;
+      color: var(--muted);
+      font-weight: normal;
+      padding: 6px 10px;
+      border-bottom: 1px solid var(--border);
+      white-space: nowrap;
+    }
+
+    .data-table td {
+      padding: 7px 10px;
+      border-bottom: 1px solid #1f2229;
+      vertical-align: middle;
+    }
+
+    .data-table tr:hover td { background: #1e2128; }
+
+    .data-table .pos { color: var(--muted); width: 36px; }
+    .data-table .pts { font-weight: bold; color: #fff; width: 50px; }
+    .data-table .num { color: var(--muted); text-align: right; }
+
+    /* ── Badges ──────────────────────────────────────────────── */
+    .team-badge, .engine-badge {
+      display: inline-block;
+      padding: 2px 9px;
+      border-radius: 3px;
+      font-size: 12px;
+      font-weight: bold;
+      white-space: nowrap;
+      letter-spacing: 0.5px;
+    }
+
+    /* ── Stat cards ──────────────────────────────────────────── */
+    .stat-row {
+      display: flex;
+      gap: 16px;
+      margin-bottom: 24px;
+      flex-wrap: wrap;
+    }
+
+    .stat-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      padding: 14px 20px;
+      min-width: 110px;
+    }
+
+    .stat-card .label { color: var(--muted); font-size: 11px; text-transform: uppercase; letter-spacing: 1px; }
+    .stat-card .value { font-size: 24px; font-weight: bold; color: #fff; margin-top: 4px; }
+
+    /* ── Events feed ─────────────────────────────────────────── */
+    .event-list { list-style: none; }
+
+    .event-item {
+      padding: 10px 14px;
+      border-left: 3px solid var(--border);
+      margin-bottom: 6px;
+      background: var(--surface);
+      border-radius: 0 4px 4px 0;
+      font-size: 13px;
+    }
+
+    .event-item.driver_retirement  { border-color: #dc2626; }
+    .event-item.driver_debut       { border-color: #16a34a; }
+    .event-item.driver_transfer    { border-color: #2563eb; }
+    .event-item.engine_deal        { border-color: #d97706; }
+    .event-item.direction_change   { border-color: #7c3aed; }
+    .event-item.formula_revolution { border-color: #db2777; }
+
+    .event-season {
+      font-size: 11px;
+      color: var(--muted);
+      margin-bottom: 2px;
+    }
+
+    /* ── Breadcrumb ──────────────────────────────────────────── */
+    .breadcrumb {
+      font-size: 12px;
+      color: var(--muted);
+      margin-bottom: 8px;
+    }
+
+    .breadcrumb a { color: var(--muted); }
+    .breadcrumb a:hover { color: var(--link); }
+    .breadcrumb span { margin: 0 6px; }
+
+    /* ── Pagination nav ──────────────────────────────────────── */
+    .page-nav {
+      display: flex;
+      gap: 12px;
+      margin-top: 24px;
+      font-size: 13px;
+    }
+
+    /* ── Flag ────────────────────────────────────────────────── */
+    .flag { font-size: 16px; }
+
+    /* ── Simulate button ─────────────────────────────────────── */
+    .sim-btn {
+      background: var(--accent);
+      color: #fff;
+      border: none;
+      padding: 8px 20px;
+      font-family: inherit;
+      font-size: 13px;
+      letter-spacing: 1px;
+      border-radius: 4px;
+      cursor: pointer;
+      transition: opacity 0.15s;
+    }
+    .sim-btn:hover { opacity: 0.85; }
+    .sim-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+    .sim-busy { color: #f59e0b; font-size: 12px; margin-left: 10px; }
+
+    /* ── Colour bar on team rows ─────────────────────────────── */
+    .color-swatch {
+      display: inline-block;
+      width: 10px;
+      height: 10px;
+      border-radius: 2px;
+      margin-right: 6px;
+      vertical-align: middle;
+    }
+  </style>
+</head>
+<body>
+  <nav>
+    <div class="logo">F1 WORLD</div>
+    <a href="/">Home</a>
+    <a href="/seasons">Seasons</a>
+    <a href="/drivers">Drivers</a>
+    <a href="/drivers/retired">↳ Retired</a>
+    <a href="/teams">Teams</a>
+    <a href="/engines">Engines</a>
+    <a href="/stats">Statistics</a>
+  </nav>
+  <main>
+    {% block content %}{% endblock %}
+  </main>
+</body>
+</html>

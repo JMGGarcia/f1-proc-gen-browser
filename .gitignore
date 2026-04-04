@@ -1,0 +1,28 @@
+# Database
+*.db
+*.db-shm
+*.db-wal
+
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+.venv/
+venv/
+*.egg-info/
+dist/
+build/
+
+# macOS
+.DS_Store
+f1_proc_gen_alias
+
+# Personal notes
+idea.md
+
+# IDE
+.vscode/
+.idea/
+
+# Environment
+.env

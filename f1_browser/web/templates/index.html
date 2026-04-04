@@ -1,0 +1,79 @@
+{% extends "base.html" %}
+{% block title %}F1 World — Home{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <h1>F1 WORLD</h1>
+  <div class="subtitle">A procedurally generated motorsport world</div>
+</div>
+
+<div class="stat-row" style="align-items:center">
+  <div class="stat-card">
+    <div class="label">Seasons</div>
+    <div class="value">{{ total_seasons }}</div>
+  </div>
+  <div>
+    {% if sim_available %}
+      {% if sim_busy %}
+        <button class="sim-btn" disabled>▶ Simulating…</button>
+        <span class="sim-busy">Season in progress</span>
+      {% else %}
+        <form method="POST" action="/simulate" style="display:inline">
+          <button class="sim-btn" type="submit">▶ Simulate Season {{ total_seasons + 1 }}</button>
+        </form>
+      {% endif %}
+    {% else %}
+      <button class="sim-btn" disabled title="Start with: python main.py">▶ Simulator not running</button>
+    {% endif %}
+  </div>
+</div>
+
+{% if summaries %}
+<h2>RECENT SEASONS</h2>
+<table class="data-table">
+  <thead>
+    <tr>
+      <th>#</th>
+      <th>Driver Champion</th>
+      <th>Team Champion</th>
+    </tr>
+  </thead>
+  <tbody>
+    {% for s in summaries %}
+    <tr>
+      <td><a href="/seasons/{{ s.season.number }}">{{ s.season.number }}</a></td>
+      <td>
+        {% if s.driver %}
+        <a href="/drivers/{{ s.driver.id }}">{{ s.driver.first_name }} {{ s.driver.last_name }}</a>
+        {% else %}—{% endif %}
+      </td>
+      <td>
+        {% if s.team %}
+        <a href="/teams/{{ s.team.id }}">
+          <span class="team-badge"
+            style="background:{{ s.team.color_primary }};color:{{ s.team.color_secondary }}">
+            {{ s.team.name }}
+          </span>
+        </a>
+        {% else %}—{% endif %}
+      </td>
+    </tr>
+    {% endfor %}
+  </tbody>
+</table>
+{% endif %}
+
+<h2>WORLD EVENTS</h2>
+{% if recent_events %}
+<ul class="event-list">
+  {% for event in recent_events %}
+  <li class="event-item {{ event.event_type }}">
+    <div class="event-season">Season {{ event.season_number }}</div>
+    {{ event.description }}
+  </li>
+  {% endfor %}
+</ul>
+{% else %}
+<p>No events yet. Start a simulation to populate the world.</p>
+{% endif %}
+{% endblock %}

@@ -1,0 +1,94 @@
+{% extends "base.html" %}
+{% block title %}{{ team.name }} — F1 World{% endblock %}
+
+{% block content %}
+<div class="breadcrumb">
+  <a href="/teams">Teams</a><span>›</span> {{ team.name }}
+</div>
+
+{% from "macros.html" import flag, engine_badge %}
+
+<div class="page-header" style="border-left: 5px solid {{ team.color_primary }}; padding-left: 16px;">
+  <h1>
+    <span class="team-badge"
+      style="background:{{ team.color_primary }};color:{{ team.color_secondary }};font-size:18px;padding:4px 14px">
+      {{ team.name | upper }}
+    </span>
+  </h1>
+</div>
+
+<div class="stat-row">
+  <div class="stat-card">
+    <div class="label">Championship Wins</div>
+    <div class="value">{{ total_wins }}</div>
+  </div>
+  <div class="stat-card">
+    <div class="label">Seasons</div>
+    <div class="value">{{ season_history | length }}</div>
+  </div>
+  <div class="stat-card">
+    <div class="label">Drivers</div>
+    <div class="value">{{ unique_drivers | length }}</div>
+  </div>
+</div>
+
+<h2>SEASON HISTORY</h2>
+{% if season_history %}
+<table class="data-table">
+  <thead>
+    <tr>
+      <th>Season</th>
+      <th>Engine</th>
+      <th class="num">Chs</th>
+      <th class="num">Eng</th>
+      <th class="num">Mgmt</th>
+      <th class="pos">Pos</th>
+      <th class="pts">Pts</th>
+    </tr>
+  </thead>
+  <tbody>
+    {% for entry in season_history %}
+    <tr>
+      <td><a href="/seasons/{{ entry.season_obj.number }}">Season {{ entry.season_obj.number }}</a></td>
+      <td>
+        {% if entry.engine_obj %}{{ engine_badge(entry.engine_obj) }}{% else %}—{% endif %}
+      </td>
+      <td class="num">{{ (entry.chassis * 100) | int }}</td>
+      <td class="num">{{ entry.engine_power if entry.engine_power is not none else '—' }}</td>
+      <td class="num">{{ (entry.direction_avg * 100) | int }}</td>
+      <td class="pos">{{ entry.championship_position if entry.championship_position else '—' }}</td>
+      <td class="pts">{{ entry.total_points }}</td>
+    </tr>
+    {% endfor %}
+  </tbody>
+</table>
+{% else %}
+<p>No season data yet.</p>
+{% endif %}
+
+<h2>DRIVERS</h2>
+{% if unique_drivers %}
+<table class="data-table">
+  <thead>
+    <tr>
+      <th>Driver</th>
+      <th>Nationality</th>
+      <th>Status</th>
+    </tr>
+  </thead>
+  <tbody>
+    {% for drv in unique_drivers %}
+    <tr>
+      <td><a href="/drivers/{{ drv.id }}">{{ drv.first_name }} {{ drv.last_name }}</a></td>
+      <td class="flag">{{ drv.flag }} {{ drv.nationality }}</td>
+      <td style="color:{% if drv.retired %}#dc2626{% else %}#16a34a{% endif %}">
+        {% if drv.retired %}Retired{% else %}Active{% endif %}
+      </td>
+    </tr>
+    {% endfor %}
+  </tbody>
+</table>
+{% else %}
+<p>No drivers on record.</p>
+{% endif %}
+{% endblock %}

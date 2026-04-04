@@ -1,0 +1,54 @@
+{% extends "base.html" %}
+{% block title %}Seasons — F1 World{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <h1>SEASONS</h1>
+  <div class="subtitle">{{ summaries | length }} seasons completed</div>
+</div>
+
+{% from "macros.html" import engine_badge %}
+
+<table class="data-table">
+  <thead>
+    <tr>
+      <th>#</th>
+      <th colspan="2">Driver Champion</th>
+      <th class="num">Skill</th>
+      <th>Team Champion</th>
+      <th>Engine</th>
+      <th class="num">Chs</th>
+      <th class="num">Eng</th>
+    </tr>
+  </thead>
+  <tbody>
+    {% for s in summaries %}
+    <tr>
+      <td><a href="/seasons/{{ s.season.number }}">{{ s.season.number }}</a></td>
+      <td class="flag">{{ s.driver_flag }}</td>
+      <td>
+        {% if s.driver %}
+        <a href="/drivers/{{ s.driver.id }}">{{ s.driver.first_name }} {{ s.driver.last_name }}</a>
+        {% else %}—{% endif %}
+      </td>
+      <td class="num">{{ s.driver_skill if s.driver_skill is not none else '—' }}</td>
+      <td>
+        {% if s.team %}
+        <a href="/teams/{{ s.team.id }}">
+          <span class="team-badge"
+            style="background:{{ s.team.color_primary }};color:{{ s.team.color_secondary }}">
+            {{ s.team.name }}
+          </span>
+        </a>
+        {% else %}—{% endif %}
+      </td>
+      <td>
+        {% if s.engine %}{{ engine_badge(s.engine) }}{% else %}—{% endif %}
+      </td>
+      <td class="num">{{ s.champion_chassis if s.champion_chassis is not none else '—' }}</td>
+      <td class="num">{{ s.engine_power if s.engine_power is not none else '—' }}</td>
+    </tr>
+    {% endfor %}
+  </tbody>
+</table>
+{% endblock %}

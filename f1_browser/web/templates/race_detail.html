@@ -1,0 +1,66 @@
+{% extends "base.html" %}
+{% block title %}{{ track.name }} — Season {{ season.number }} — F1 World{% endblock %}
+
+{% block content %}
+<div class="breadcrumb">
+  <a href="/seasons">Seasons</a><span>›</span>
+  <a href="/seasons/{{ season.number }}">Season {{ season.number }}</a><span>›</span>
+  Round {{ race.round_number }}
+</div>
+
+<div class="page-header">
+  <h1>{{ track.name | upper }}</h1>
+  <div class="subtitle">
+    Season {{ season.number }} · Round {{ race.round_number }} ·
+    Downforce bias {{ (track.downforce_over_engine * 100) | int }}% ·
+    Car vs driver {{ (track.car_over_driver * 100) | int }}%
+  </div>
+</div>
+
+{% from "macros.html" import flag, team_badge, engine_badge %}
+
+<table class="data-table">
+  <thead>
+    <tr>
+      <th class="pos">Pos</th>
+      <th>Driver</th>
+      <th>Nat</th>
+      <th>Team</th>
+      <th>Engine</th>
+      <th class="pts">Pts</th>
+    </tr>
+  </thead>
+  <tbody>
+    {% for r in results %}
+    <tr {% if r.dnf %}style="opacity:0.45"{% endif %}>
+      <td class="pos">
+        {% if r.dnf %}DNF{% else %}{{ r.position }}{% endif %}
+      </td>
+      <td>
+        <a href="/drivers/{{ r.driver_obj.id }}">
+          {{ r.driver_obj.first_name }} {{ r.driver_obj.last_name }}
+        </a>
+      </td>
+      <td class="flag">{{ flag(r.driver_obj.nationality) }}</td>
+      <td>
+        {% if r.team_obj %}{{ team_badge(r.team_obj) }}{% else %}—{% endif %}
+      </td>
+      <td>
+        {% if r.engine_obj %}{{ engine_badge(r.engine_obj) }}{% else %}—{% endif %}
+      </td>
+      <td class="pts">{% if not r.dnf %}{{ r.points }}{% endif %}</td>
+    </tr>
+    {% endfor %}
+  </tbody>
+</table>
+
+<div class="page-nav">
+  {% if prev_round %}
+  <a href="/seasons/{{ season.number }}/races/{{ prev_round }}">← Round {{ prev_round }}</a>
+  {% endif %}
+  <a href="/seasons/{{ season.number }}">↑ Season {{ season.number }}</a>
+  {% if next_round %}
+  <a href="/seasons/{{ season.number }}/races/{{ next_round }}">Round {{ next_round }} →</a>
+  {% endif %}
+</div>
+{% endblock %}

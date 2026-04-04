@@ -1,0 +1,136 @@
+{% extends "base.html" %}
+{% block title %}Season {{ season.number }} — F1 World{% endblock %}
+
+{% block content %}
+<div class="breadcrumb">
+  <a href="/seasons">Seasons</a><span>›</span> Season {{ season.number }}
+</div>
+
+<div class="page-header">
+  <h1>SEASON {{ season.number }}</h1>
+</div>
+
+<h2>DRIVER CHAMPIONSHIP</h2>
+<table class="data-table">
+  <thead>
+    <tr>
+      <th class="pos">Pos</th>
+      <th>Driver</th>
+      <th>Nat</th>
+      <th>Team</th>
+      <th>Engine</th>
+      <th class="num">Skill</th>
+      <th class="pts">Pts</th>
+    </tr>
+  </thead>
+  <tbody>
+    {% for ds in driver_stats %}
+    <tr>
+      <td class="pos">{{ ds.championship_position }}</td>
+      <td><a href="/drivers/{{ ds.driver_obj.id }}">{{ ds.driver_obj.first_name }} {{ ds.driver_obj.last_name }}</a></td>
+      <td class="flag">{{ ds.driver_flag }}</td>
+      <td>
+        {% if ds.team_obj %}
+        <a href="/teams/{{ ds.team_obj.id }}">
+          <span class="team-badge"
+            style="background:{{ ds.team_obj.color_primary }};color:{{ ds.team_obj.color_secondary }}">
+            {{ ds.team_obj.name }}
+          </span>
+        </a>
+        {% else %}—{% endif %}
+      </td>
+      <td>
+        {% if ds.engine_obj %}
+        <span class="engine-badge"
+          style="background:{{ ds.engine_obj.color_primary }};color:{{ ds.engine_obj.color_secondary }}">
+          {{ ds.engine_obj.name }}
+        </span>
+        {% else %}—{% endif %}
+      </td>
+      <td class="num">{{ (ds.skill * 100) | int }}</td>
+      <td class="pts">{{ ds.total_points }}</td>
+    </tr>
+    {% endfor %}
+  </tbody>
+</table>
+
+<h2>TEAM CHAMPIONSHIP</h2>
+<table class="data-table">
+  <thead>
+    <tr>
+      <th class="pos">Pos</th>
+      <th>Team</th>
+      <th>Engine</th>
+      <th class="num">Chs</th>
+      <th class="num">Eng</th>
+      <th class="num">Mgmt</th>
+      <th class="pts">Pts</th>
+    </tr>
+  </thead>
+  <tbody>
+    {% for ts in team_stats %}
+    <tr>
+      <td class="pos">{{ ts.championship_position }}</td>
+      <td>
+        <a href="/teams/{{ ts.team_obj.id }}">
+          <span class="team-badge"
+            style="background:{{ ts.team_obj.color_primary }};color:{{ ts.team_obj.color_secondary }}">
+            {{ ts.team_obj.name }}
+          </span>
+        </a>
+      </td>
+      <td>
+        {% if ts.engine_obj %}
+        <span class="engine-badge"
+          style="background:{{ ts.engine_obj.color_primary }};color:{{ ts.engine_obj.color_secondary }}">
+          {{ ts.engine_obj.name }}
+        </span>
+        {% else %}—{% endif %}
+      </td>
+      <td class="num">{{ (ts.chassis * 100) | int }}</td>
+      <td class="num">{{ ts.engine_power if ts.engine_power is not none else '—' }}</td>
+      <td class="num">{{ (ts.direction_avg * 100) | int }}</td>
+      <td class="pts">{{ ts.total_points }}</td>
+    </tr>
+    {% endfor %}
+  </tbody>
+</table>
+
+<h2>RACE CALENDAR</h2>
+<table class="data-table">
+  <thead>
+    <tr>
+      <th class="pos">Rnd</th>
+      <th>Circuit</th>
+      <th>Winner</th>
+      <th>Team</th>
+    </tr>
+  </thead>
+  <tbody>
+    {% for race in races %}
+    <tr>
+      <td class="pos">{{ race.round_number }}</td>
+      <td><a href="/seasons/{{ season.number }}/races/{{ race.round_number }}">{{ race.track.name }}</a></td>
+      <td>
+        {% if race.winner %}
+        <a href="/drivers/{{ race.winner.id }}">{{ race.winner.first_name }} {{ race.winner.last_name }}</a>
+        {% else %}—{% endif %}
+      </td>
+      <td>
+        {% if race.winner_team %}
+        <span class="team-badge"
+          style="background:{{ race.winner_team.color_primary }};color:{{ race.winner_team.color_secondary }}">
+          {{ race.winner_team.name }}
+        </span>
+        {% else %}—{% endif %}
+      </td>
+    </tr>
+    {% endfor %}
+  </tbody>
+</table>
+
+<div class="page-nav">
+  {% if prev_season %}<a href="/seasons/{{ prev_season }}">← Season {{ prev_season }}</a>{% endif %}
+  {% if next_season %}<a href="/seasons/{{ next_season }}">Season {{ next_season }} →</a>{% endif %}
+</div>
+{% endblock %}

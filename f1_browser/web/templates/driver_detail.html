@@ -1,0 +1,76 @@
+{% extends "base.html" %}
+{% block title %}{{ driver.first_name }} {{ driver.last_name }} — F1 World{% endblock %}
+
+{% block content %}
+<div class="breadcrumb">
+  <a href="/drivers">Drivers</a><span>›</span>
+  {{ driver.first_name }} {{ driver.last_name }}
+</div>
+
+{% from "macros.html" import flag, team_badge, engine_badge %}
+
+<div class="page-header">
+  <h1>{{ flag(driver.nationality) }} {{ driver.first_name | upper }} {{ driver.last_name | upper }}</h1>
+  <div class="subtitle">
+    {{ driver.nationality }}
+    {% if driver.retired %} · Retired{% if driver.retired_season %} after Season {{ driver.retired_season }}{% endif %}{% endif %}
+  </div>
+</div>
+
+<div class="stat-row">
+  <div class="stat-card">
+    <div class="label">Race Wins</div>
+    <div class="value">{{ total_wins }}</div>
+  </div>
+  <div class="stat-card">
+    <div class="label">Podiums</div>
+    <div class="value">{{ total_podiums }}</div>
+  </div>
+  {% if career %}
+  <div class="stat-card">
+    <div class="label">Seasons</div>
+    <div class="value">{{ career | length }}</div>
+  </div>
+  <div class="stat-card">
+    <div class="label">Peak Skill</div>
+    <div class="value">{{ (career | map(attribute='top_skill') | max * 100) | int }}</div>
+  </div>
+  {% endif %}
+</div>
+
+<h2>CAREER HISTORY</h2>
+{% if career %}
+<table class="data-table">
+  <thead>
+    <tr>
+      <th>Season</th>
+      <th>Team</th>
+      <th>Engine</th>
+      <th class="num">Age</th>
+      <th class="num">Skill</th>
+      <th class="pos">Pos</th>
+      <th class="pts">Pts</th>
+    </tr>
+  </thead>
+  <tbody>
+    {% for entry in career %}
+    <tr>
+      <td><a href="/seasons/{{ entry.season_obj.number }}">Season {{ entry.season_obj.number }}</a></td>
+      <td>
+        {% if entry.team_obj %}{{ team_badge(entry.team_obj) }}{% else %}—{% endif %}
+      </td>
+      <td>
+        {% if entry.engine_obj %}{{ engine_badge(entry.engine_obj) }}{% else %}—{% endif %}
+      </td>
+      <td class="num">{{ entry.age }}</td>
+      <td class="num">{{ (entry.skill * 100) | int }}</td>
+      <td class="pos">{{ entry.championship_position if entry.championship_position else '—' }}</td>
+      <td class="pts">{{ entry.total_points }}</td>
+    </tr>
+    {% endfor %}
+  </tbody>
+</table>
+{% else %}
+<p>No career data available.</p>
+{% endif %}
+{% endblock %}
