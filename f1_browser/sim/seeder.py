@@ -10,7 +10,7 @@ import random
 from typing import List, Tuple
 
 from db import models as m
-from sim.constants import SimulationConstants
+from sim.constants import SimulationConstants, TeamConstants
 from sim.countries import get_country
 from sim.drivers import Driver, DriverGenerator
 from sim.sponsors import Sponsor, SPONSOR_DATA
@@ -246,6 +246,9 @@ def seed_world(db, names_dir: str = "./names") -> Tuple[
             age=driver.age,
             skill=driver.skill,
             top_skill=driver.top_skill,
+            loyalty=driver.loyalty,
+            greed=driver.greed,
+            ambition=driver.ambition,
         )
         db.add(db_driver)
     db.flush()
@@ -275,6 +278,7 @@ def seed_world(db, names_dir: str = "./names") -> Tuple[
         team_sponsor = next(sponsor_pool)
         sponsor_contract = random.randint(3, 6)
 
+        finance_base = random.randint(TeamConstants.FINANCE_BASE_INDIVIDUAL_MIN, TeamConstants.FINANCE_BASE_INDIVIDUAL_MAX)
         team = Team(
             name=team_name,
             drivers=[drv1, drv2],
@@ -287,6 +291,7 @@ def seed_world(db, names_dir: str = "./names") -> Tuple[
             sponsor=team_sponsor,
             sponsor_contract=sponsor_contract,
             nationality=nat,
+            finance_base=finance_base,
         )
         teams.append(team)
         engine.add_team(team)
@@ -297,7 +302,7 @@ def seed_world(db, names_dir: str = "./names") -> Tuple[
         db_team = m.Team(
             name=team_name, color_primary=cp, color_secondary=cs, nationality=nat,
             sponsor_id=team_sponsor.db_id, sponsor_contract=sponsor_contract,
-            is_active=True, owner_type="individual",
+            is_active=True, owner_type="individual", finance_base=finance_base,
         )
         db.add(db_team)
 

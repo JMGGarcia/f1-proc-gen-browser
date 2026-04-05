@@ -59,10 +59,10 @@ class Engine:
         self.teams.append(team)
 
     def remove_team(self, r_team: Team):
-        for idx, team in enumerate(self.teams):
-            if team.name == r_team.name:
-                del self.teams[idx]
-                return
+        try:
+            self.teams.remove(r_team)
+        except ValueError:
+            pass
 
 
 class Direction:
@@ -71,8 +71,11 @@ class Direction:
         self.development = random.random()
         self.scouting = random.random()
         self.eng_scouting = random.random()
-        self.avg = (self.development + self.scouting + self.eng_scouting) / 3
         self.position_history: List[int] = []
+
+    @property
+    def avg(self) -> float:
+        return (self.development + self.scouting + self.eng_scouting) / 3
 
     @property
     def avg_100(self) -> int:
@@ -97,7 +100,6 @@ class Direction:
             self.development = random.random()
             self.scouting = random.random()
             self.eng_scouting = random.random()
-            self.avg = (self.development + self.scouting + self.eng_scouting) / 3
             self.position_history = []
             return True
 
@@ -106,7 +108,6 @@ class Direction:
         for attr in ("development", "scouting", "eng_scouting"):
             val = getattr(self, attr) + random.random() * 2 * change - change
             setattr(self, attr, min(1.0, max(0.0, val)))
-        self.avg = (self.development + self.scouting + self.eng_scouting) / 3
         return False
 
     def get_stats(self) -> Tuple[int, int, int, int]:
@@ -136,6 +137,7 @@ class Team:
         owner_type: str = OwnerType.INDIVIDUAL,
         owner_engine: Optional[Engine] = None,
         owner_sponsor: Optional[Sponsor] = None,
+        finance_base: int = 2,
     ):
         if len(drivers) != TeamConstants.MAX_DRIVERS:
             raise ValueError(f"Team must have exactly {TeamConstants.MAX_DRIVERS} drivers")
@@ -147,6 +149,8 @@ class Team:
         self.engine = engine
         self.color_primary = color_primary
         self.color_secondary = color_secondary
+        h = color_primary.lstrip("#")
+        self.rgb_primary: tuple[int, int, int] = (int(h[0:2], 16), int(h[2:4], 16), int(h[4:6], 16))
         self.engine_contract = engine_contract
         self.sponsor: Optional[Sponsor] = sponsor
         self.sponsor_contract: int = sponsor_contract
@@ -161,6 +165,7 @@ class Team:
         self.owner_type = owner_type
         self.owner_engine: Optional[Engine] = owner_engine
         self.owner_sponsor: Optional[Sponsor] = owner_sponsor
+        self.finance_base: int = finance_base
     
     @property
     def nationality(self) -> str | None:
@@ -181,8 +186,10 @@ class Team:
         self.engine_contract = -1
         engine.remove_team(self)
 
-    def is_engine_contract_still_valid(self) -> bool:
+    def tick_engine_contract(self) -> None:
         self.engine_contract -= 1
+
+    def is_engine_contract_still_valid(self) -> bool:
         # Only treat as expired when it hits exactly 0; negative means already removed
         return self.engine_contract != 0
 
@@ -194,13 +201,15 @@ class Team:
         self.sponsor_contract = -1
         sponsor.release_team()
 
-    def is_sponsor_contract_still_valid(self) -> bool:
+    def tick_sponsor_contract(self) -> None:
         self.sponsor_contract -= 1
+
+    def is_sponsor_contract_still_valid(self) -> bool:
         return self.sponsor_contract != 0
 
-    def is_drivers_contracts_still_valid(self) -> Tuple[bool, bool]:
-        results = []
+    def tick_driver_contracts(self) -> None:
         for i in range(2):
             self.driver_contracts[i] -= 1
-            results.append(self.driver_contracts[i] != 0)
-        return results[0], results[1]
+
+    def are_driver_contracts_valid(self) -> Tuple[bool, bool]:
+        return self.driver_contracts[0] != 0, self.driver_contracts[1] != 0

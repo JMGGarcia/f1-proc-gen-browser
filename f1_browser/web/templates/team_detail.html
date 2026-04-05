@@ -45,6 +45,12 @@
   </div>
   {% endif %}
   {% endif %}
+  {% if finance_level is defined %}
+  <div class="stat-card" title="Finance base: {{ finance_base }}">
+    <div class="label">Finance</div>
+    <div class="value">{{ finance_level }}/10</div>
+  </div>
+  {% endif %}
 </div>
 
 <h2>OWNERSHIP</h2>

@@ -30,6 +30,9 @@ class DriverGenerator:
             country=country,
             skill=skill,
             age=random.randint(SimulationConstants.GEN_MIN_AGE, SimulationConstants.GEN_MAX_AGE),
+            loyalty=random.random(),
+            greed=random.random(),
+            ambition=random.random(),
         )
         self.current_id += 1
         return d
@@ -50,15 +53,15 @@ class DriverGenerator:
         return random.choices(available_codes, weights=weights, k=1)[0]
 
     def _load_names(self) -> Dict[str, Dict[str, List[str]]]:
-        strut: Dict[str, Dict[str, List[str]]] = {}
+        structure: Dict[str, Dict[str, List[str]]] = {}
         dirs = next(os.walk(self.names_dir))[1]
         for nationality in dirs:
-            strut[nationality] = {}
+            structure[nationality] = {}
             with open(f"{self.names_dir}/{nationality}/first.txt", "r") as f:
-                strut[nationality]["first"] = f.read().splitlines()
+                structure[nationality]["first"] = f.read().splitlines()
             with open(f"{self.names_dir}/{nationality}/last.txt", "r") as f:
-                strut[nationality]["last"] = f.read().splitlines()
-        return strut
+                structure[nationality]["last"] = f.read().splitlines()
+        return structure
 
 
 class Driver:
@@ -71,6 +74,9 @@ class Driver:
         skill: float = 0,
         form: str = "M",
         age: int = 20,
+        loyalty: float = 0.5,
+        greed: float = 0.5,
+        ambition: float = 0.5,
     ):
         self.db_id = db_id
         self.first_name = first_name
@@ -88,6 +94,9 @@ class Driver:
         self.top_skill = skill
         self.form = form
         self.age = age
+        self.loyalty = loyalty
+        self.greed = greed
+        self.ambition = ambition
         self.team: Optional[object] = None  # set by Team
     
     @property
@@ -115,7 +124,7 @@ class Driver:
         self.age += 1
         if self.age <= 25:
             self.base_skill += DriverConstants.SKILL_IMPROVEMENT_RATE * random.random()
-            if self.base_skill > 1:
+            if self.base_skill >= 1:
                 self.base_skill = 1.0
         elif self.age > 30:
             self.base_skill -= DriverConstants.SKILL_IMPROVEMENT_RATE * random.random()

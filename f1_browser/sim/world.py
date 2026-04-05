@@ -9,7 +9,7 @@ from sim.constants import DriverConstants, PointsSystem, SimulationConstants, Te
 from sim.drivers import Driver, DriverGenerator
 from sim.season import Season
 from sim.sponsors import Sponsor
-from sim.teams import Engine, OwnerType, Team
+from sim.teams import Direction, Engine, OwnerType, Team
 
 
 def _is_struggling(team: Team) -> bool:
@@ -47,13 +47,9 @@ def _pick_buyer_type(teams: List[Team], engines: List[Engine], sponsors: List[Sp
     if total == 0:
         return None
 
-    r = random.random() * total
-    cumulative = 0.0
-    for btype, w in weights.items():
-        cumulative += w
-        if r < cumulative:
-            return btype
-    return OwnerType.INDIVIDUAL
+    btypes = list(weights.keys())
+    bweights = list(weights.values())
+    return random.choices(btypes, weights=bweights, k=1)[0]
 
 
 class WorldRunner:
@@ -104,7 +100,7 @@ class WorldRunner:
         self._tweak_chassis_engine(db, season_num, season_id)
         self._teams_pick_engines(db, season_num, sorted_teams, winning_driver, winning_team)
         self._teams_pick_sponsors(db, season_num, sorted_teams)
-        self._teams_pick_drivers(db, season_num, sorted_teams)
+        self._teams_pick_drivers(db, season_num, sorted_teams, winning_driver, winning_team)
         self._tweak_driver_form()
         db.commit()
 
@@ -207,9 +203,6 @@ class WorldRunner:
                     team.direction.development = max(floor, team.direction.development)
                     team.direction.scouting = max(floor, team.direction.scouting)
                     team.direction.eng_scouting = max(floor, team.direction.eng_scouting)
-                    team.direction.avg = (
-                        team.direction.development + team.direction.scouting + team.direction.eng_scouting
-                    ) / 3
 
                 new_stats = team.direction.get_stats()
                 self._emit_event(
@@ -339,13 +332,33 @@ class WorldRunner:
             return
         total_teams = len(self.teams)
 
+        def _score_sponsor(sponsor, team, prev_sponsor):
+            score = 0
+            if prev_sponsor is not None and sponsor is prev_sponsor:
+                score += 1
+            if sponsor.country and team.country and sponsor.country == team.country:
+                score += 1
+            if sponsor.country:
+                for driver in team.drivers:
+                    if driver and driver.country and driver.country == sponsor.country:
+                        score += 1
+            r1, g1, b1 = team.rgb_primary
+            r2, g2, b2 = sponsor.rgb_primary
+            if ((r1-r2)**2 + (g1-g2)**2 + (b1-b2)**2) ** 0.5 <= 80:
+                score += 1
+            return score
+
         # Release expired contracts — but give a 75% chance of renewal if the
         # sponsor tier still matches the team's current standing
         position_map_pre = {team: pos for pos, (team, _) in enumerate(sorted_teams, 1)}
         total_teams = len(self.teams)
+        expiring_map: dict = {}
 
         for team in self.teams:
-            if not (team.sponsor and not team.is_sponsor_contract_still_valid()):
+            if not team.sponsor:
+                continue
+            team.tick_sponsor_contract()
+            if team.is_sponsor_contract_still_valid():
                 continue
             # Sponsor-owned teams always keep their owner sponsor — extend instead of releasing
             if team.owner_type == OwnerType.SPONSOR and team.owner_sponsor is not None:
@@ -384,6 +397,7 @@ class WorldRunner:
                     db, season_num, "engine_deal",
                     f"{team.name}'s sponsorship deal with {expiring_sponsor.name} has ended.",
                 )
+                expiring_map[team] = expiring_sponsor
                 team.remove_sponsor()
 
         # Teams without a sponsor pick in finishing order (best team picks first)
@@ -410,23 +424,15 @@ class WorldRunner:
             if pos <= max(5, total_teams // 2):
                 eligible_tiers.append("large")
 
-            # Pick from the highest eligible tier that has availability.
-            # 80% chance of best tier, 15% next tier down, 5% any tier.
+            # Pick the highest-scoring sponsor from the best eligible tier.
             tier_order = [t for t in ["large", "medium", "small"] if t in eligible_tiers]
+            prev_sponsor = expiring_map.get(team)
             chosen = None
-            roll = random.random()
-            tiers_to_try = []
-            if roll < 0.80:
-                tiers_to_try = tier_order[:1]       # best eligible tier only
-            elif roll < 0.95:
-                tiers_to_try = tier_order[:2]       # top two tiers
-            else:
-                tiers_to_try = tier_order           # any eligible tier
 
-            for tier in tiers_to_try:
+            for tier in tier_order:
                 candidates = [s for s in self.sponsors if s.team is None and s.tier == tier]
                 if candidates:
-                    chosen = random.choice(candidates)
+                    chosen = max(candidates, key=lambda s: _score_sponsor(s, team, prev_sponsor))
                     break
 
             if chosen is None:
@@ -434,7 +440,7 @@ class WorldRunner:
                 fallback = [s for s in self.sponsors if s.team is None]
                 if not fallback:
                     continue
-                chosen = random.choice(fallback)
+                chosen = max(fallback, key=lambda s: _score_sponsor(s, team, prev_sponsor))
 
             contract = self._random_sponsor_contract(chosen.tier)
             team.sponsor = chosen
@@ -449,31 +455,20 @@ class WorldRunner:
                 f"{team.name} signed a {contract}-year sponsorship deal with {chosen.name}.",
             )
 
-    def _teams_pick_drivers(self, db, season_num: int, sorted_teams):
+    def _teams_pick_drivers(self, db, season_num: int, sorted_teams, winning_driver: Driver, winning_team: Team):
         # Release expired contracts
         for team in self.teams:
-            drv1_ok, drv2_ok = team.is_drivers_contracts_still_valid()
+            team.tick_driver_contracts()
+            drv1_ok, drv2_ok = team.are_driver_contracts_valid()
             if not drv1_ok:
                 self._take_driver_from_team(db, team, 0, season_num)
             if not drv2_ok:
                 self._take_driver_from_team(db, team, 1, season_num)
 
-        # Fill empty seats (priority: highest-placed team picks first)
-        for team, _ in sorted_teams:
-            cached_perception: Optional[List[Driver]] = None
-            for idx, driver in enumerate(team.drivers):
-                if driver is None:
-                    if cached_perception is None:
-                        cached_perception = self._compute_driver_perception(team)
-                    new_driver = cached_perception.pop(0)
-                    team.drivers[idx] = new_driver
-                    team.driver_contracts[idx] = self._random_contract_years()
-                    new_driver.team = team
-                    self._emit_event(
-                        db, season_num, "driver_transfer",
-                        f"{new_driver.name} {new_driver.flag} (skill {new_driver.skill_100}) "
-                        f"joined {team.name} on a {team.driver_contracts[idx]}-year contract.",
-                    )
+        # Fill empty seats via two-sided matching
+        prev_drv_champ_team = winning_driver.team  # may be None if driver retired mid-season
+        prev_team_champ = winning_team
+        self._match_drivers_to_teams(db, season_num, sorted_teams, prev_drv_champ_team, prev_team_champ)
 
     def _teams_pick_engines(self, db, season_num: int, sorted_teams, winning_driver: Driver, winning_team: Team):
         winning_driver_engine = winning_driver.team.engine if winning_driver.team else None
@@ -481,6 +476,7 @@ class WorldRunner:
 
         # Deprecate expired contracts
         for team in self.teams:
+            team.tick_engine_contract()
             if not team.is_engine_contract_still_valid():
                 team.remove_engine()
 
@@ -574,6 +570,17 @@ class WorldRunner:
         elif buyer_type == OwnerType.SPONSOR:
             new_nationality = buyer_sponsor.nationality
 
+        # Determine finance_base for the new owner type
+        if buyer_type == OwnerType.ENGINE_SUPPLIER:
+            new_finance_base = TeamConstants.FINANCE_BASE_ENGINE_SUPPLIER
+        elif buyer_type == OwnerType.SPONSOR:
+            new_finance_base = TeamConstants.FINANCE_BASE_SPONSOR_OWNER
+        else:
+            new_finance_base = random.randint(
+                TeamConstants.FINANCE_BASE_INDIVIDUAL_MIN,
+                TeamConstants.FINANCE_BASE_INDIVIDUAL_MAX,
+            )
+
         # Create new DB row
         db_new = m.Team(
             name=new_name,
@@ -587,6 +594,7 @@ class WorldRunner:
             owner_engine_id=buyer_engine.db_id if buyer_engine else None,
             owner_sponsor_id=buyer_sponsor.db_id if buyer_sponsor else None,
             predecessor_team_id=old_team.db_id,
+            finance_base=new_finance_base,
         )
         db.add(db_new)
         db.flush()
@@ -608,9 +616,9 @@ class WorldRunner:
             owner_type=buyer_type,
             owner_engine=buyer_engine,
             owner_sponsor=buyer_sponsor,
+            finance_base=new_finance_base,
         )
         # Fresh direction, cleared history (new ownership era)
-        from sim.teams import Direction
         new_team.direction = Direction()
         new_team.direction.position_history = []
         new_team.direction.years = 0
@@ -625,7 +633,8 @@ class WorldRunner:
         elif old_team.engine is not None:
             # Transfer existing engine team reference from old to new
             old_team.engine.remove_team(old_team)
-            new_team.engine.add_team(new_team)
+            if new_team.engine is not None:
+                new_team.engine.add_team(new_team)
 
         # Sponsor lock-in for sponsor buyers
         if buyer_type == OwnerType.SPONSOR:
@@ -700,6 +709,165 @@ class WorldRunner:
     # ------------------------------------------------------------------ #
     # Helpers                                                              #
     # ------------------------------------------------------------------ #
+
+    def _compute_finance_level(
+        self,
+        team: Team,
+        prev_drv_champ_team: Optional[Team],
+        prev_team_champ: Optional[Team],
+    ) -> int:
+        finance = team.finance_base
+        if team.sponsor:
+            sponsor_bonus = {"small": 1, "medium": 2, "large": 3}.get(team.sponsor.tier, 0)
+            finance += sponsor_bonus
+        if prev_drv_champ_team is team:
+            finance += 1
+        if prev_team_champ is team:
+            finance += 1
+        return finance
+
+    def _compute_driver_utility(self, driver: Driver, team: Team, finance: int, prev_team: Optional[Team]) -> float:
+        loyalty_score = 1.0 if (prev_team is not None and prev_team is team) else 0.0
+        greed_score = finance / 10.0
+        ambition_score = team.avg_skill_100 / 100.0
+        return (
+            DriverConstants.LOYALTY_WEIGHT * driver.loyalty * loyalty_score
+            + DriverConstants.GREED_WEIGHT * driver.greed * greed_score
+            + DriverConstants.AMBITION_WEIGHT * driver.ambition * ambition_score
+        )
+
+    def _match_drivers_to_teams(
+        self,
+        db,
+        season_num: int,
+        sorted_teams,
+        prev_drv_champ_team: Optional[Team],
+        prev_team_champ: Optional[Team],
+    ) -> None:
+        """Two-sided matching: teams propose to drivers; drivers tentatively accept best offer."""
+        # Compute finance levels for all teams
+        finance_by_team: dict[int, int] = {
+            id(team): self._compute_finance_level(team, prev_drv_champ_team, prev_team_champ)
+            for team, _ in sorted_teams
+        }
+
+        # Track each free driver's previous team (before contracts were released this window)
+        prev_team_by_driver: dict[int, Optional[Team]] = {
+            id(d): d.team for d in self.drivers  # team is None for truly free agents at this point
+        }
+
+        # Build team preference lists (scouting-weighted, computed once per team)
+        team_prefs: dict[int, List[Driver]] = {}
+        for team, _ in sorted_teams:
+            open_seats = sum(1 for d in team.drivers if d is None)
+            if open_seats > 0:
+                team_prefs[id(team)] = self._compute_driver_perception(team)
+
+        # Track tentative assignments: driver -> (team, seat_index)
+        tentative: dict[int, Tuple[Team, int]] = {}  # driver id -> (team, seat_idx)
+        # Track which drivers each team has already proposed to and been rejected by
+        rejected_by_team: dict[int, set] = {id(team): set() for team, _ in sorted_teams}
+
+        teams_with_seats = [team for team, _ in sorted_teams if any(d is None for d in team.drivers)]
+
+        max_rounds = len(self.drivers) + 1
+        for _ in range(max_rounds):
+            if not teams_with_seats:
+                break
+
+            # Each team with open seats makes one offer to its top unrejected free driver
+            offers: dict[int, list] = {}  # driver id -> list of (utility, team, seat_idx)
+            for team in list(teams_with_seats):
+                # Count open seats not yet tentatively filled
+                tentatively_filled = sum(
+                    1 for d_id, (t, _) in tentative.items() if t is team
+                )
+                open_seats = sum(1 for d in team.drivers if d is None) - tentatively_filled
+                if open_seats <= 0:
+                    continue
+
+                prefs = team_prefs.get(id(team), [])
+                rejected = rejected_by_team[id(team)]
+                # Find seat indices that are empty and not tentatively filled
+                already_filling = {
+                    seat for d_id, (t, seat) in tentative.items() if t is team
+                }
+                open_seat_idxs = [
+                    i for i, d in enumerate(team.drivers)
+                    if d is None and i not in already_filling
+                ]
+
+                for seat_idx in open_seat_idxs:
+                    for candidate in prefs:
+                        if id(candidate) in rejected:
+                            continue
+                        if candidate.team is not None:
+                            continue  # already placed
+                        # Make offer
+                        finance = finance_by_team[id(team)]
+                        prev_team = prev_team_by_driver.get(id(candidate))
+                        utility = self._compute_driver_utility(candidate, team, finance, prev_team)
+                        offers.setdefault(id(candidate), []).append((utility, team, seat_idx))
+                        break
+
+            if not offers:
+                break  # no progress possible
+
+            # Each driver with offers tentatively accepts the best one, rejects the rest
+            for drv_id, offer_list in offers.items():
+                driver = next(d for d in self.drivers if id(d) == drv_id)
+                best = max(offer_list, key=lambda x: x[0])
+                _, best_team, best_seat = best
+
+                # If driver already had a tentative assignment to a worse team, release it
+                if drv_id in tentative:
+                    old_team, _ = tentative[drv_id]
+                    if old_team is not best_team:
+                        rejected_by_team[id(old_team)].add(drv_id)
+
+                tentative[drv_id] = (best_team, best_seat)
+
+                # Reject all other offers
+                for utility, team, seat_idx in offer_list:
+                    if team is not best_team:
+                        rejected_by_team[id(team)].add(drv_id)
+
+            # Recompute which teams still have unfilled open seats
+            teams_with_seats = []
+            for team, _ in sorted_teams:
+                tentatively_filled = sum(1 for _, (t, _) in tentative.items() if t is team)
+                open_seats = sum(1 for d in team.drivers if d is None) - tentatively_filled
+                if open_seats > 0:
+                    # Check there are still free drivers left to offer
+                    rejected = rejected_by_team[id(team)]
+                    has_candidates = any(
+                        id(d) not in rejected and d.team is None
+                        for d in self.drivers
+                    )
+                    if has_candidates:
+                        teams_with_seats.append(team)
+
+        # Finalise all tentative assignments
+        for drv_id, (team, seat_idx) in tentative.items():
+            driver = next(d for d in self.drivers if id(d) == drv_id)
+            team.drivers[seat_idx] = driver
+            team.driver_contracts[seat_idx] = self._random_contract_years()
+            driver.team = team
+            finance = finance_by_team[id(team)]
+            prev_team = prev_team_by_driver.get(id(driver))
+            stayed = prev_team is team
+            trait_note = (
+                f"loyalty {int(driver.loyalty * 100)}, "
+                f"greed {int(driver.greed * 100)}, "
+                f"ambition {int(driver.ambition * 100)}"
+            )
+            verb = "re-signed with" if stayed else "joined"
+            self._emit_event(
+                db, season_num, "driver_transfer",
+                f"{driver.name} {driver.flag} (skill {driver.skill_100}) "
+                f"{verb} {team.name} on a {team.driver_contracts[seat_idx]}-year contract "
+                f"[{trait_note}].",
+            )
 
     def _compute_driver_perception(self, team: Team) -> List[Driver]:
         free_drivers = [d for d in self.drivers if d.team is None]

@@ -24,6 +24,8 @@ class Sponsor:
         self.tier = tier
         self.color_primary = color_primary
         self.color_secondary = color_secondary
+        h = color_primary.lstrip("#")
+        self.rgb_primary: tuple[int, int, int] = (int(h[0:2], 16), int(h[2:4], 16), int(h[4:6], 16))
         
         # Handle both Country objects and string codes
         if isinstance(nationality, str):
@@ -219,48 +221,19 @@ SPONSOR_DATA = [
     ("Kenwood",             "small",  "#CC0000", "#F0F0F0", "JP"),
     ("Pioneer",             "small",  "#CC0000", "#F0F0F0", "JP"),
     ("National",            "small",  "#003087", "#F0F0F0", "JP"),
-    # ── Korean ───────────────────────────────────────────────────
-    ("Hyundai",             "large",  "#002C5F", "#FFFFFF", "KR"),
-    ("Kia",                 "medium", "#C60C30", "#F0F0F0", "KR"),
-    ("SK Energy",           "medium", "#003087", "#FFD700", "KR"),
-    ("GS Caltex",           "medium", "#CC0000", "#FFD700", "KR"),
-    ("KT Corporation",      "small",  "#D41A1C", "#F0F0F0", "KR"),
-    ("CJ CGV",              "small",  "#003087", "#C9A84C", "KR"),
-    ("NAVER",               "small",  "#00C73C", "#FFFFFF", "KR"),
-    ("Kakao",               "small",  "#FFE812", "#000000", "KR"),
     # ── Chinese ──────────────────────────────────────────────────
     ("Haier",               "medium", "#003087", "#F0F0F0", "CN"),
     ("TCL",                 "medium", "#CC0000", "#F0F0F0", "CN"),
     ("Alibaba",             "large",  "#FF6B6B", "#F0F0F0", "CN"),
     ("Tencent",             "large",  "#0084FF", "#F0F0F0", "CN"),
-    ("Geely",               "medium", "#003087", "#FFD700", "CN"),
     ("BYD",                 "medium", "#CC0000", "#FFFFFF", "CN"),
-    ("JD.com",              "medium", "#D71920", "#F0F0F0", "CN"),
-    ("NetEase",             "small",  "#CC0000", "#F0F0F0", "CN"),
-    ("Byte Dance",          "small",  "#000000", "#F0F0F0", "CN"),
-    ("Li Auto",             "small",  "#003087", "#F0F0F0", "CN"),
     # ── Swiss ────────────────────────────────────────────────────
     ("Nestle",              "large",  "#8B4513", "#F0F0F0", "CH"),
-    ("Roche",               "large",  "#CC0000", "#F0F0F0", "CH"),
-    ("Swatch Group",        "medium", "#1A1A1A", "#C9A84C", "CH"),
+    ("Roche",               "medium", "#CC0000", "#F0F0F0", "CH"),
+    ("Swatch",              "medium", "#1A1A1A", "#C9A84C", "CH"),
     ("ABB",                 "medium", "#003087", "#FFD700", "CH"),
     ("Novartis",            "medium", "#003087", "#F0F0F0", "CH"),
     ("Lindt",               "small",  "#8B6914", "#F0F0F0", "CH"),
     # ── Canadian ─────────────────────────────────────────────────
-    ("Bombardier",          "large",  "#003087", "#FFD700", "CA"),
-    ("Magna",               "medium", "#CC0000", "#F0F0F0", "CA"),
-    ("Linamar",             "medium", "#003087", "#F0F0F0", "CA"),
-    ("CAE",                 "small",  "#003087", "#F0F0F0", "CA"),
-    ("Saputo",              "small",  "#1A1A1A", "#C9A84C", "CA"),
-    # ── New Zealand ──────────────────────────────────────────────
-    ("Fisher & Paykel",     "small",  "#003087", "#F0F0F0", "NZ"),
-    ("Fonterra",            "small",  "#003087", "#FFD700", "NZ"),
-    ("Air New Zealand",     "small",  "#003087", "#FFC72C", "NZ"),
-    ("Zealandia",           "small",  "#003087", "#008000", "NZ"),
-    # ── South African ────────────────────────────────────────────
-    ("Sasol",               "medium", "#CC0000", "#FFD700", "ZA"),
-    ("Naspers",             "medium", "#003087", "#F0F0F0", "ZA"),
-    ("Shoprite",            "small",  "#FF6600", "#F0F0F0", "ZA"),
-    ("Capitec",             "small",  "#FF8000", "#FFFFFF", "ZA"),
-    ("MTN",                 "small",  "#FFD700", "#000000", "ZA"),
+    ("Bombardier",          "medium", "#003087", "#FFD700", "CA"),
 ]

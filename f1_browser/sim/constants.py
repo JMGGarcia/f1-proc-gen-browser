@@ -7,6 +7,10 @@ class DriverConstants:
     FORM_HIGH_THRESHOLD = 0.66
     SKILL_IMPROVEMENT_RATE = 0.08
     MIN_SKILL = 0.1
+    # Trait weights for driver utility scoring (must sum to 1 for normalised scores)
+    LOYALTY_WEIGHT = 1 / 3
+    GREED_WEIGHT = 1 / 3
+    AMBITION_WEIGHT = 1 / 3
 
 
 class TeamConstants:
@@ -22,6 +26,11 @@ class TeamConstants:
     MAX_SPONSOR_OWNERS = 3
     ENGINE_OWNER_CONTRACT = 10         # long lock-in contract years when engine supplier buys team
     SPONSOR_OWNER_CONTRACT = 10
+    # Finance base by owner type (individual range set at generation time)
+    FINANCE_BASE_INDIVIDUAL_MIN = 1
+    FINANCE_BASE_INDIVIDUAL_MAX = 3
+    FINANCE_BASE_SPONSOR_OWNER = 4
+    FINANCE_BASE_ENGINE_SUPPLIER = 5
 
 
 class SimulationConstants:

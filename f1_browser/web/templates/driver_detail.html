@@ -36,6 +36,20 @@
     <div class="value">{{ (career | map(attribute='top_skill') | max * 100) | int }}</div>
   </div>
   {% endif %}
+  {% if driver.loyalty is not none %}
+  <div class="stat-card" title="How much the driver values staying at the same team">
+    <div class="label">Loyalty</div>
+    <div class="value">{{ (driver.loyalty * 100) | int }}</div>
+  </div>
+  <div class="stat-card" title="How much the driver values team finances">
+    <div class="label">Greed</div>
+    <div class="value">{{ (driver.greed * 100) | int }}</div>
+  </div>
+  <div class="stat-card" title="How much the driver values car quality">
+    <div class="label">Ambition</div>
+    <div class="value">{{ (driver.ambition * 100) | int }}</div>
+  </div>
+  {% endif %}
 </div>
 
 <h2>CAREER HISTORY</h2>

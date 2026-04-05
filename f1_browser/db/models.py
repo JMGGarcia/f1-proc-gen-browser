@@ -61,6 +61,7 @@ class Team(Base):
     owner_engine_id = Column(Integer, ForeignKey("engines.id"), nullable=True)
     owner_sponsor_id = Column(Integer, ForeignKey("sponsors.id"), nullable=True)
     predecessor_team_id = Column(Integer, ForeignKey("teams.id"), nullable=True)
+    finance_base = Column(Integer, nullable=True)  # 1–5; see TeamConstants.FINANCE_BASE_*
 
 
 class Driver(Base):
@@ -75,6 +76,9 @@ class Driver(Base):
     top_skill = Column(Float, nullable=True)
     retired = Column(Boolean, default=False, nullable=False)
     retired_season = Column(Integer, nullable=True)
+    loyalty = Column(Float, nullable=True)
+    greed = Column(Float, nullable=True)
+    ambition = Column(Float, nullable=True)
 
 
 class Season(Base):
@@ -101,9 +105,9 @@ class RaceResult(Base):
     __tablename__ = "race_results"
 
     id = Column(Integer, primary_key=True, index=True)
-    race_id = Column(Integer, ForeignKey("races.id"), nullable=False)
-    driver_id = Column(Integer, ForeignKey("drivers.id"), nullable=False)
-    team_id = Column(Integer, ForeignKey("teams.id"), nullable=False)
+    race_id = Column(Integer, ForeignKey("races.id"), nullable=False, index=True)
+    driver_id = Column(Integer, ForeignKey("drivers.id"), nullable=False, index=True)
+    team_id = Column(Integer, ForeignKey("teams.id"), nullable=False, index=True)
     engine_id = Column(Integer, ForeignKey("engines.id"), nullable=False)
     position = Column(Integer, nullable=False)  # 1-based; 0 = DNF
     points = Column(Integer, nullable=False, default=0)
@@ -121,9 +125,9 @@ class DriverSeasonStats(Base):
     __tablename__ = "driver_season_stats"
 
     id = Column(Integer, primary_key=True, index=True)
-    driver_id = Column(Integer, ForeignKey("drivers.id"), nullable=False)
-    season_id = Column(Integer, ForeignKey("seasons.id"), nullable=False)
-    team_id = Column(Integer, ForeignKey("teams.id"), nullable=True)
+    driver_id = Column(Integer, ForeignKey("drivers.id"), nullable=False, index=True)
+    season_id = Column(Integer, ForeignKey("seasons.id"), nullable=False, index=True)
+    team_id = Column(Integer, ForeignKey("teams.id"), nullable=True, index=True)
     engine_id = Column(Integer, ForeignKey("engines.id"), nullable=True)
     age = Column(Integer, nullable=False)
     skill = Column(Float, nullable=False)
@@ -144,8 +148,8 @@ class TeamSeasonStats(Base):
     __tablename__ = "team_season_stats"
 
     id = Column(Integer, primary_key=True, index=True)
-    team_id = Column(Integer, ForeignKey("teams.id"), nullable=False)
-    season_id = Column(Integer, ForeignKey("seasons.id"), nullable=False)
+    team_id = Column(Integer, ForeignKey("teams.id"), nullable=False, index=True)
+    season_id = Column(Integer, ForeignKey("seasons.id"), nullable=False, index=True)
     engine_id = Column(Integer, ForeignKey("engines.id"), nullable=True)
     chassis = Column(Float, nullable=False)
     direction_avg = Column(Float, nullable=False)

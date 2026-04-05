@@ -14,16 +14,25 @@ def sponsors_list(request: Request, db: Session = Depends(get_db_session)):
     latest_season = (
         db.query(Season).filter_by(completed=True).order_by(Season.number.desc()).first()
     )
+
+    if latest_season:
+        sponsor_ids = [sp.id for sp in sponsors]
+        tss_list = (
+            db.query(TeamSeasonStats)
+            .filter(
+                TeamSeasonStats.sponsor_id.in_(sponsor_ids),
+                TeamSeasonStats.season_id == latest_season.id,
+            )
+            .all()
+        )
+        team_ids = [tss.team_id for tss in tss_list]
+        teams_by_id = {t.id: t for t in db.query(Team).filter(Team.id.in_(team_ids)).all()}
+        team_by_sponsor = {tss.sponsor_id: teams_by_id.get(tss.team_id) for tss in tss_list}
+    else:
+        team_by_sponsor = {}
+
     for sp in sponsors:
-        # Find current team via latest TeamSeasonStats
-        current_team = None
-        if latest_season:
-            tss = db.query(TeamSeasonStats).filter_by(
-                sponsor_id=sp.id, season_id=latest_season.id
-            ).first()
-            if tss:
-                current_team = db.query(Team).filter_by(id=tss.team_id).first()
-        sp.current_team = current_team
+        sp.current_team = team_by_sponsor.get(sp.id)
 
     # Group by tier for display
     large = [s for s in sponsors if s.tier == "large"]

@@ -9,6 +9,7 @@ Caveats (acceptable approximations):
 """
 from __future__ import annotations
 
+import random
 from sqlalchemy.orm import Session
 
 from db import models as m
@@ -92,6 +93,9 @@ def load_world_from_db(db: Session, names_dir: str = "./names"):
             country=d.nationality,
             skill=skill,
             age=age,
+            loyalty=d.loyalty if d.loyalty is not None else 0.5,
+            greed=d.greed if d.greed is not None else 0.5,
+            ambition=d.ambition if d.ambition is not None else 0.5,
         )
         drv.base_skill = skill
         drv.top_skill = top_skill
@@ -149,6 +153,7 @@ def load_world_from_db(db: Session, names_dir: str = "./names"):
             owner_type=t.owner_type or OwnerType.INDIVIDUAL,
             owner_engine=owner_engine,
             owner_sponsor=owner_sponsor,
+            finance_base=t.finance_base if t.finance_base is not None else 2,
         )
         team.direction = direction
         teams.append(team)
@@ -174,7 +179,6 @@ def _rebuild_direction(db: Session, team_id: int, latest_ts, latest_season_num: 
         direction.development = avg
         direction.scouting = avg
         direction.eng_scouting = avg
-        direction.avg = avg
     # Rebuild last N seasons' positions for firing logic
     history_window = SimulationConstants.HISTORY_YEARS
     past_stats = (
@@ -194,5 +198,4 @@ def _rebuild_direction(db: Session, team_id: int, latest_ts, latest_season_num: 
 
 def _fallback_engine(engines) -> Engine:
     """Return the engine with the most capacity (fewest teams) as a fallback."""
-    import random
     return random.choice(engines)

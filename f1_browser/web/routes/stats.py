@@ -19,9 +19,11 @@ def _driver_champs(db):
         .order_by(func.count().desc())
         .all()
     )
+    driver_ids = [row.driver_id for row in rows]
+    drivers_by_id = {d.id: d for d in db.query(Driver).filter(Driver.id.in_(driver_ids)).all()}
     result = []
     for row in rows:
-        d = db.query(Driver).filter_by(id=row.driver_id).first()
+        d = drivers_by_id.get(row.driver_id)
         if d:
             d.flag = NATIONALITY_FLAGS.get(d.nationality, "")
             result.append((d, row.wins))
@@ -37,9 +39,11 @@ def _team_champs_by_source(db, model, label):
         .order_by(func.count().desc())
         .all()
     )
+    team_ids = [row.team_id for row in rows]
+    teams_by_id = {t.id: t for t in db.query(Team).filter(Team.id.in_(team_ids)).all()}
     result = []
     for row in rows:
-        t = db.query(Team).filter_by(id=row.team_id).first()
+        t = teams_by_id.get(row.team_id)
         if t:
             result.append((t, row.wins))
     return result
@@ -47,16 +51,20 @@ def _team_champs_by_source(db, model, label):
 
 def _engine_champs_by_source(db, model):
     """Engine wins from whichever season stats model is passed."""
-    winning_seasons = db.query(model).filter_by(championship_position=1).all()
-    counts: dict = {}
-    for ts in winning_seasons:
-        if ts.engine_id:
-            counts[ts.engine_id] = counts.get(ts.engine_id, 0) + 1
+    rows = (
+        db.query(model.engine_id, func.count().label("wins"))
+        .filter(model.championship_position == 1, model.engine_id.isnot(None))
+        .group_by(model.engine_id)
+        .order_by(func.count().desc())
+        .all()
+    )
+    engine_ids = [row.engine_id for row in rows]
+    engines_by_id = {e.id: e for e in db.query(Engine).filter(Engine.id.in_(engine_ids)).all()}
     result = []
-    for engine_id, wins in sorted(counts.items(), key=lambda x: x[1], reverse=True):
-        e = db.query(Engine).filter_by(id=engine_id).first()
+    for row in rows:
+        e = engines_by_id.get(row.engine_id)
         if e:
-            result.append((e, wins))
+            result.append((e, row.wins))
     return result
 
 
