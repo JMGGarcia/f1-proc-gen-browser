@@ -6,7 +6,7 @@
   <a href="/teams">Teams</a><span>›</span> {{ team.name }}
 </div>
 
-{% from "macros.html" import flag, engine_badge %}
+{% from "macros.html" import flag, engine_badge, team_badge %}
 
 <div class="page-header" style="border-left: 5px solid {{ team.color_primary }}; padding-left: 16px;">
   <h1>
@@ -14,6 +14,9 @@
       style="background:{{ team.color_primary }};color:{{ team.color_secondary }};font-size:18px;padding:4px 14px">
       {{ team.name | upper }}
     </span>
+    {% if team.nationality %}
+    <span class="flag" style="font-size:20px;margin-left:10px">{{ flag(team.nationality) }}</span>
+    {% endif %}
   </h1>
 </div>
 
@@ -30,7 +33,78 @@
     <div class="label">Drivers</div>
     <div class="value">{{ unique_drivers | length }}</div>
   </div>
+  {% if latest_stats and latest_stats.direction_avg is not none %}
+  <div class="stat-card">
+    <div class="label">Management</div>
+    <div class="value">{{ (latest_stats.direction_avg * 100) | int }}</div>
+  </div>
+  {% if latest_stats.direction_years is not none %}
+  <div class="stat-card">
+    <div class="label">Mgmt tenure</div>
+    <div class="value">{{ latest_stats.direction_years }}y</div>
+  </div>
+  {% endif %}
+  {% endif %}
 </div>
+
+<h2>OWNERSHIP</h2>
+<div class="stat-row">
+  <div class="stat-card">
+    <div class="label">Owner Type</div>
+    <div class="value" style="font-size:14px">
+      {% if team.owner_type == "engine_supplier" %}Engine Supplier
+      {% elif team.owner_type == "sponsor" %}Corporate
+      {% else %}Individual{% endif %}
+    </div>
+  </div>
+  {% if team.owner_engine_obj %}
+  <div class="stat-card">
+    <div class="label">Owner</div>
+    <div class="value">
+      <span class="engine-badge"
+        style="background:{{ team.owner_engine_obj.color_primary }};color:{{ team.owner_engine_obj.color_secondary }}">
+        {{ team.owner_engine_obj.name }}
+      </span>
+    </div>
+  </div>
+  {% elif team.owner_sponsor_obj %}
+  <div class="stat-card">
+    <div class="label">Owner</div>
+    <div class="value">
+      <span class="sponsor-badge"
+        style="background:{{ team.owner_sponsor_obj.color_primary }};color:{{ team.owner_sponsor_obj.color_secondary }}">
+        {{ team.owner_sponsor_obj.name }}
+      </span>
+    </div>
+  </div>
+  {% endif %}
+  {% if team.predecessor %}
+  <div class="stat-card">
+    <div class="label">Formerly</div>
+    <div class="value" style="font-size:14px">
+      <a href="/teams/{{ team.predecessor.id }}">{{ team.predecessor.name }}</a>
+    </div>
+  </div>
+  {% endif %}
+</div>
+
+{% if latest_stats and latest_stats.direction_development is not none %}
+<h2>TEAM DIRECTION</h2>
+<div class="stat-row">
+  <div class="stat-card">
+    <div class="label">Development</div>
+    <div class="value">{{ (latest_stats.direction_development * 100) | int }}</div>
+  </div>
+  <div class="stat-card">
+    <div class="label">Driver Scouting</div>
+    <div class="value">{{ (latest_stats.direction_scouting * 100) | int }}</div>
+  </div>
+  <div class="stat-card">
+    <div class="label">Engine Scouting</div>
+    <div class="value">{{ (latest_stats.direction_eng_scouting * 100) | int }}</div>
+  </div>
+</div>
+{% endif %}
 
 {% if current_drivers %}
 <h2>CURRENT ROSTER</h2>
@@ -57,10 +131,14 @@
   <thead>
     <tr>
       <th>Season</th>
+      <th>Owner</th>
+      <th>Sponsor</th>
       <th>Engine</th>
       <th class="num">Chs</th>
       <th class="num">Eng</th>
-      <th class="num">Mgmt</th>
+      <th class="num">Dev</th>
+      <th class="num">Scout</th>
+      <th class="num">EngSc</th>
       <th class="pos">Pos</th>
       <th class="pts">Pts</th>
     </tr>
@@ -69,12 +147,27 @@
     {% for entry in season_history %}
     <tr>
       <td><a href="/seasons/{{ entry.season_obj.number }}">Season {{ entry.season_obj.number }}</a></td>
+      <td style="font-size:11px;color:var(--muted)">
+        {% if entry.owner_type == "engine_supplier" %}Supplier
+        {% elif entry.owner_type == "sponsor" %}Corporate
+        {% else %}Ind.{% endif %}
+      </td>
+      <td>
+        {% if entry.sponsor_obj %}
+        <span class="sponsor-badge"
+          style="background:{{ entry.sponsor_obj.color_primary }};color:{{ entry.sponsor_obj.color_secondary }}">
+          {{ entry.sponsor_obj.name }}
+        </span>
+        {% else %}—{% endif %}
+      </td>
       <td>
         {% if entry.engine_obj %}{{ engine_badge(entry.engine_obj) }}{% else %}—{% endif %}
       </td>
       <td class="num">{{ (entry.chassis * 100) | int }}</td>
       <td class="num">{{ entry.engine_power if entry.engine_power is not none else '—' }}</td>
-      <td class="num">{{ (entry.direction_avg * 100) | int }}</td>
+      <td class="num">{{ (entry.direction_development * 100) | int if entry.direction_development is not none else (entry.direction_avg * 100) | int }}</td>
+      <td class="num">{{ (entry.direction_scouting * 100) | int if entry.direction_scouting is not none else '—' }}</td>
+      <td class="num">{{ (entry.direction_eng_scouting * 100) | int if entry.direction_eng_scouting is not none else '—' }}</td>
       <td class="pos">{{ entry.championship_position if entry.championship_position else '—' }}</td>
       <td class="pts">{{ entry.total_points }}</td>
     </tr>

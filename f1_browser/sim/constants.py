@@ -13,6 +13,15 @@ class TeamConstants:
     MAX_DRIVERS = 2
     MIN_CHASSIS = 0.0
     MAX_CHASSIS = 1.0
+    ENGINE_OWNER_POWER_BONUS = 0.05    # added to engine power per season when supplier owns a team
+    DIRECTION_OWNER_FLOOR = 0.40       # minimum direction stat after principal reset (non-individual owners)
+    STRUGGLING_THRESHOLD = 5           # constructors position outside top-N to count as poor season
+    SALE_PROBABILITY = 0.65
+    BUYER_WEIGHTS = {"individual": 60, "engine_supplier": 30, "sponsor": 10}
+    MAX_ENGINE_SUPPLIER_OWNERS = 3
+    MAX_SPONSOR_OWNERS = 2
+    ENGINE_OWNER_CONTRACT = 10         # long lock-in contract years when engine supplier buys team
+    SPONSOR_OWNER_CONTRACT = 10
 
 
 class SimulationConstants:

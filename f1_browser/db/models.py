@@ -32,6 +32,18 @@ class Engine(Base):
     value = Column(Float, nullable=False)
     color_primary = Column(String, nullable=False)
     color_secondary = Column(String, nullable=False)
+    nationality = Column(String, nullable=True)
+
+
+class Sponsor(Base):
+    __tablename__ = "sponsors"
+
+    id = Column(Integer, primary_key=True, index=True)
+    name = Column(String, nullable=False)
+    tier = Column(String, nullable=False)   # "large", "medium", "small"
+    color_primary = Column(String, nullable=False)
+    color_secondary = Column(String, nullable=False)
+    nationality = Column(String, nullable=True)
 
 
 class Team(Base):
@@ -39,8 +51,16 @@ class Team(Base):
 
     id = Column(Integer, primary_key=True, index=True)
     name = Column(String, nullable=False)
+    nationality = Column(String, nullable=True)
     color_primary = Column(String, nullable=False)
     color_secondary = Column(String, nullable=False)
+    sponsor_id = Column(Integer, ForeignKey("sponsors.id"), nullable=True)
+    sponsor_contract = Column(Integer, nullable=True)
+    is_active = Column(Boolean, default=True, nullable=False)
+    owner_type = Column(String, default="individual", nullable=True)  # "individual" | "engine_supplier" | "sponsor"
+    owner_engine_id = Column(Integer, ForeignKey("engines.id"), nullable=True)
+    owner_sponsor_id = Column(Integer, ForeignKey("sponsors.id"), nullable=True)
+    predecessor_team_id = Column(Integer, ForeignKey("teams.id"), nullable=True)
 
 
 class Driver(Base):
@@ -129,8 +149,14 @@ class TeamSeasonStats(Base):
     engine_id = Column(Integer, ForeignKey("engines.id"), nullable=True)
     chassis = Column(Float, nullable=False)
     direction_avg = Column(Float, nullable=False)
+    direction_development = Column(Float, nullable=True)
+    direction_scouting = Column(Float, nullable=True)
+    direction_eng_scouting = Column(Float, nullable=True)
+    direction_years = Column(Integer, nullable=True)
     total_points = Column(Integer, nullable=False, default=0)
     championship_position = Column(Integer, nullable=True)
+    sponsor_id = Column(Integer, ForeignKey("sponsors.id"), nullable=True)
+    owner_type = Column(String, nullable=True)
 
     team = relationship("Team")
     season = relationship("Season")

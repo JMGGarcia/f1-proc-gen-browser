@@ -133,7 +133,7 @@
     .data-table .num { color: var(--muted); text-align: right; }
 
     /* ── Badges ──────────────────────────────────────────────── */
-    .team-badge, .engine-badge {
+    .team-badge, .engine-badge, .sponsor-badge {
       display: inline-block;
       padding: 2px 9px;
       border-radius: 3px;
@@ -180,6 +180,7 @@
     .event-item.engine_deal        { border-color: #d97706; }
     .event-item.direction_change   { border-color: #7c3aed; }
     .event-item.formula_revolution { border-color: #db2777; }
+    .event-item.team_sale          { border-color: #f59e0b; }
 
     .event-season {
       font-size: 11px;
@@ -246,6 +247,7 @@
     <a href="/drivers/retired">↳ Retired</a>
     <a href="/teams">Teams</a>
     <a href="/engines">Engines</a>
+    <a href="/sponsors">Sponsors</a>
     <a href="/stats">Statistics</a>
     {% set ctx = nav_ctx() %}
     {% if ctx.nav_champion %}

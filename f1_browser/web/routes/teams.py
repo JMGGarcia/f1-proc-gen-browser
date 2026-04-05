@@ -1,7 +1,7 @@
 from fastapi import APIRouter, Depends, HTTPException, Request
 from sqlalchemy.orm import Session
 
-from db.models import Driver, DriverSeasonStats, Engine, EngineSeasonStats, Season, Team, TeamSeasonStats
+from db.models import Driver, DriverSeasonStats, Engine, EngineSeasonStats, Season, Sponsor, Team, TeamSeasonStats
 from db.session import get_db_session
 from sim.flags import NATIONALITY_FLAGS
 from web.templates_env import templates
@@ -9,24 +9,46 @@ from web.templates_env import templates
 router = APIRouter(prefix="/teams")
 
 
+def _attach_team_display_data(team, db):
+    latest = (
+        db.query(TeamSeasonStats)
+        .filter_by(team_id=team.id)
+        .order_by(TeamSeasonStats.season_id.desc())
+        .first()
+    )
+    team.latest_stats = latest
+    team.current_engine = (
+        db.query(Engine).filter_by(id=latest.engine_id).first()
+        if latest and latest.engine_id else None
+    )
+    team.current_sponsor = (
+        db.query(Sponsor).filter_by(id=latest.sponsor_id).first()
+        if latest and latest.sponsor_id else None
+    )
+    team.owner_engine_obj = (
+        db.query(Engine).filter_by(id=team.owner_engine_id).first()
+        if team.owner_engine_id else None
+    )
+    team.owner_sponsor_obj = (
+        db.query(Sponsor).filter_by(id=team.owner_sponsor_id).first()
+        if team.owner_sponsor_id else None
+    )
+
+
 @router.get("/")
 def teams_list(request: Request, db: Session = Depends(get_db_session)):
-    teams = db.query(Team).order_by(Team.name).all()
-    for team in teams:
-        latest = (
-            db.query(TeamSeasonStats)
-            .filter_by(team_id=team.id)
-            .order_by(TeamSeasonStats.season_id.desc())
-            .first()
-        )
-        team.latest_stats = latest
-        team.current_engine = (
-            db.query(Engine).filter_by(id=latest.engine_id).first()
-            if latest and latest.engine_id else None
-        )
+    active_teams = db.query(Team).filter_by(is_active=True).order_by(Team.name).all()
+    for team in active_teams:
+        _attach_team_display_data(team, db)
+
+    old_teams = db.query(Team).filter_by(is_active=False).order_by(Team.name).all()
+    for team in old_teams:
+        _attach_team_display_data(team, db)
+        team.successor = db.query(Team).filter_by(predecessor_team_id=team.id).first()
 
     return templates.TemplateResponse(request, "teams_list.html", {
-        "teams": teams,
+        "teams": active_teams,
+        "old_teams": old_teams,
     })
 
 
@@ -45,6 +67,7 @@ def team_detail(team_id: int, request: Request, db: Session = Depends(get_db_ses
     for entry in season_history:
         entry.season_obj = db.query(Season).filter_by(id=entry.season_id).first()
         entry.engine_obj = db.query(Engine).filter_by(id=entry.engine_id).first() if entry.engine_id else None
+        entry.sponsor_obj = db.query(Sponsor).filter_by(id=entry.sponsor_id).first() if entry.sponsor_id else None
         if entry.engine_id:
             eng_s = db.query(EngineSeasonStats).filter_by(
                 engine_id=entry.engine_id, season_id=entry.season_id
@@ -91,6 +114,20 @@ def team_detail(team_id: int, request: Request, db: Session = Depends(get_db_ses
                 current_drivers.append(drv)
 
     total_wins = sum(e.championship_position == 1 for e in season_history)
+    latest_stats = season_history[-1] if season_history else None
+
+    team.owner_engine_obj = (
+        db.query(Engine).filter_by(id=team.owner_engine_id).first()
+        if team.owner_engine_id else None
+    )
+    team.owner_sponsor_obj = (
+        db.query(Sponsor).filter_by(id=team.owner_sponsor_id).first()
+        if team.owner_sponsor_id else None
+    )
+    team.predecessor = (
+        db.query(Team).filter_by(id=team.predecessor_team_id).first()
+        if team.predecessor_team_id else None
+    )
 
     return templates.TemplateResponse(request, "team_detail.html", {
         "team": team,
@@ -98,4 +135,5 @@ def team_detail(team_id: int, request: Request, db: Session = Depends(get_db_ses
         "unique_drivers": unique_drivers,
         "current_drivers": current_drivers,
         "total_wins": total_wins,
+        "latest_stats": latest_stats,
     })

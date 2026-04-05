@@ -15,10 +15,11 @@
       <th>#</th>
       <th colspan="2">Driver Champion</th>
       <th class="num">Skill</th>
-      <th>Team Champion</th>
+      <th>Team</th>
+      <th>Sponsor</th>
       <th>Engine</th>
-      <th class="num">Chs</th>
       <th class="num">Eng</th>
+      <th>Constructor Champion</th>
     </tr>
   </thead>
   <tbody>
@@ -33,6 +34,28 @@
       </td>
       <td class="num">{{ s.driver_skill if s.driver_skill is not none else '—' }}</td>
       <td>
+        {% if s.driver_team %}
+        <a href="/teams/{{ s.driver_team.id }}">
+          <span class="team-badge"
+            style="background:{{ s.driver_team.color_primary }};color:{{ s.driver_team.color_secondary }}">
+            {{ s.driver_team.name }}
+          </span>
+        </a>
+        {% else %}—{% endif %}
+      </td>
+      <td>
+        {% if s.driver_sponsor %}
+        <span class="sponsor-badge"
+          style="background:{{ s.driver_sponsor.color_primary }};color:{{ s.driver_sponsor.color_secondary }}">
+          {{ s.driver_sponsor.name }}
+        </span>
+        {% else %}—{% endif %}
+      </td>
+      <td>
+        {% if s.driver_engine %}{{ engine_badge(s.driver_engine) }}{% else %}—{% endif %}
+      </td>
+      <td class="num">{{ s.driver_engine_power if s.driver_engine_power is not none else '—' }}</td>
+      <td>
         {% if s.team %}
         <a href="/teams/{{ s.team.id }}">
           <span class="team-badge"
@@ -42,11 +65,6 @@
         </a>
         {% else %}—{% endif %}
       </td>
-      <td>
-        {% if s.engine %}{{ engine_badge(s.engine) }}{% else %}—{% endif %}
-      </td>
-      <td class="num">{{ s.champion_chassis if s.champion_chassis is not none else '—' }}</td>
-      <td class="num">{{ s.engine_power if s.engine_power is not none else '—' }}</td>
     </tr>
     {% endfor %}
   </tbody>

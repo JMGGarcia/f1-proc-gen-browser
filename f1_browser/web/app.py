@@ -2,7 +2,7 @@ from fastapi import FastAPI
 
 from db.models import Driver, DriverSeasonStats, Season
 from db.session import get_session
-from web.routes import index, seasons, drivers, teams, engines, stats, simulate
+from web.routes import index, seasons, drivers, teams, engines, sponsors, stats, simulate
 from web.templates_env import templates
 
 app = FastAPI(title="F1 World")
@@ -12,6 +12,7 @@ app.include_router(seasons.router)
 app.include_router(drivers.router)
 app.include_router(teams.router)
 app.include_router(engines.router)
+app.include_router(sponsors.router)
 app.include_router(stats.router)
 app.include_router(simulate.router)
 

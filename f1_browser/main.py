@@ -37,7 +37,7 @@ def run_simulation():
         existing = db.query(Season).count()
         if existing > 0:
             print(f"Database contains {existing} seasons. Reconstructing world state...")
-            tracks, engines, teams, drivers, driver_gen = load_world_from_db(db, names_dir=NAMES_DIR)
+            tracks, engines, teams, drivers, driver_gen, sponsors = load_world_from_db(db, names_dir=NAMES_DIR)
             runner = WorldRunner(
                 tracks=tracks,
                 engines=engines,
@@ -45,6 +45,7 @@ def run_simulation():
                 drivers=drivers,
                 driver_generator=driver_gen,
                 n_seasons=0,
+                sponsors=sponsors,
             )
             sim_state.register(runner)
             print("World state reconstructed — simulate button is active.")
@@ -52,7 +53,7 @@ def run_simulation():
 
     print("Seeding initial world state...")
     with get_session() as db:
-        tracks, engines, teams, drivers, driver_gen = seed_world(db, names_dir=NAMES_DIR)
+        tracks, engines, teams, drivers, driver_gen, sponsors = seed_world(db, names_dir=NAMES_DIR)
 
     print(f"Running {N_SEASONS} seasons...")
     runner = WorldRunner(
@@ -62,6 +63,7 @@ def run_simulation():
         drivers=drivers,
         driver_generator=driver_gen,
         n_seasons=N_SEASONS,
+        sponsors=sponsors,
     )
     sim_state.register(runner)
 

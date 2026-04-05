@@ -1,13 +1,59 @@
 from __future__ import annotations
 
+import os
 import random
 from typing import List, Optional, Tuple
 
 from db import models as m
-from sim.constants import DriverConstants, PointsSystem, SimulationConstants
+from sim.constants import DriverConstants, PointsSystem, SimulationConstants, TeamConstants
 from sim.drivers import Driver, DriverGenerator
 from sim.season import Season
-from sim.teams import Engine, Team
+from sim.sponsors import Sponsor
+from sim.teams import Engine, OwnerType, Team
+
+
+def _is_struggling(team: Team) -> bool:
+    """Return True if a team has finished outside the top STRUGGLING_THRESHOLD in 4 of the last 5 seasons."""
+    ph = team.direction.position_history
+    if len(ph) < SimulationConstants.HISTORY_YEARS:
+        return False
+    bad = sum(1 for p in ph[-SimulationConstants.HISTORY_YEARS:] if p > TeamConstants.STRUGGLING_THRESHOLD)
+    return bad >= 4
+
+
+def _pick_buyer_type(teams: List[Team], engines: List[Engine], sponsors: List[Sponsor]) -> Optional[str]:
+    """Pick a buyer type based on weights, respecting ownership caps."""
+    engine_owner_count = sum(1 for t in teams if t.owner_type == OwnerType.ENGINE_SUPPLIER)
+    sponsor_owner_count = sum(1 for t in teams if t.owner_type == OwnerType.SPONSOR)
+
+    weights = dict(TeamConstants.BUYER_WEIGHTS)
+    if engine_owner_count >= TeamConstants.MAX_ENGINE_SUPPLIER_OWNERS:
+        weights[OwnerType.ENGINE_SUPPLIER] = 0
+    if sponsor_owner_count >= TeamConstants.MAX_SPONSOR_OWNERS:
+        weights[OwnerType.SPONSOR] = 0
+
+    # Ensure there's an engine that doesn't already own a team
+    owning_engine_ids = {t.owner_engine.db_id for t in teams if t.owner_engine}
+    free_owner_engines = [e for e in engines if e.db_id not in owning_engine_ids]
+    if not free_owner_engines:
+        weights[OwnerType.ENGINE_SUPPLIER] = 0
+
+    # Ensure there's a large sponsor available
+    free_large_sponsors = [s for s in sponsors if s.tier == "large" and s.team is None]
+    if not free_large_sponsors:
+        weights[OwnerType.SPONSOR] = 0
+
+    total = sum(weights.values())
+    if total == 0:
+        return None
+
+    r = random.random() * total
+    cumulative = 0.0
+    for btype, w in weights.items():
+        cumulative += w
+        if r < cumulative:
+            return btype
+    return OwnerType.INDIVIDUAL
 
 
 class WorldRunner:
@@ -19,6 +65,7 @@ class WorldRunner:
         drivers: List[Driver],
         driver_generator: DriverGenerator,
         n_seasons: int,
+        sponsors: Optional[List[Sponsor]] = None,
     ):
         self.tracks = tracks
         self.engines = engines
@@ -26,6 +73,7 @@ class WorldRunner:
         self.drivers = drivers
         self.driver_generator = driver_generator
         self.n_seasons = n_seasons
+        self.sponsors: List[Sponsor] = sponsors or []
 
     def run(self, db):
         for n in range(self.n_seasons):
@@ -51,9 +99,11 @@ class WorldRunner:
         winning_team = sorted_teams[0][0]
 
         self._update_directions(db, season_num, sorted_teams)
+        sorted_teams = self._check_team_sales(db, season_num, sorted_teams)
         self._age_drivers(db, season_num)
         self._tweak_chassis_engine(db, season_num, season_id)
         self._teams_pick_engines(db, season_num, sorted_teams, winning_driver, winning_team)
+        self._teams_pick_sponsors(db, season_num, sorted_teams)
         self._teams_pick_drivers(db, season_num, sorted_teams)
         self._tweak_driver_form()
         db.commit()
@@ -116,8 +166,14 @@ class WorldRunner:
                 engine_id=team.engine.db_id if team.engine else None,
                 chassis=team.chassis,
                 direction_avg=team.direction.avg,
+                direction_development=team.direction.development,
+                direction_scouting=team.direction.scouting,
+                direction_eng_scouting=team.direction.eng_scouting,
+                direction_years=team.direction.years,
                 total_points=team_points.get(team, 0),
                 championship_position=pos,
+                sponsor_id=team.sponsor.db_id if team.sponsor else None,
+                owner_type=team.owner_type,
             ))
 
         for engine in self.engines:
@@ -145,13 +201,25 @@ class WorldRunner:
             old_stats = team.direction.get_stats()
             changed = team.direction.yearly_update(idx, total_teams)
             if changed:
+                # Apply direction floor for financially-backed owners
+                if team.owner_type in (OwnerType.ENGINE_SUPPLIER, OwnerType.SPONSOR):
+                    floor = TeamConstants.DIRECTION_OWNER_FLOOR
+                    team.direction.development = max(floor, team.direction.development)
+                    team.direction.scouting = max(floor, team.direction.scouting)
+                    team.direction.eng_scouting = max(floor, team.direction.eng_scouting)
+                    team.direction.avg = (
+                        team.direction.development + team.direction.scouting + team.direction.eng_scouting
+                    ) / 3
+
                 new_stats = team.direction.get_stats()
                 self._emit_event(
                     db, season_num, "direction_change",
                     f"{team.name} appointed a new team principal. "
                     f"Management skill changed from {old_stats[0]} to {new_stats[0]}.",
                 )
-                team.remove_engine()
+                # Engine-supplier owned teams don't lose their engine on principal change
+                if team.owner_type != OwnerType.ENGINE_SUPPLIER:
+                    team.remove_engine()
 
     def _age_drivers(self, db, season_num: int):
         to_retire = []
@@ -209,6 +277,14 @@ class WorldRunner:
             delta = random.random() * random_factor - random_factor / 2
             engine.power = min(1.0, max(0.0, engine.power + delta))
 
+            # Engine supplier ownership bonus: extra investment in development
+            owns_a_team = any(
+                t.owner_type == OwnerType.ENGINE_SUPPLIER and t.owner_engine is engine
+                for t in engine.teams
+            )
+            if owns_a_team:
+                engine.power = min(1.0, engine.power + TeamConstants.ENGINE_OWNER_POWER_BONUS)
+
             if revolution:
                 engine.reliability -= random.random() * 0.2 + 0.3
             engine.reliability += random.random() * 0.1 + 0.05
@@ -258,6 +334,121 @@ class WorldRunner:
             )
             self._retire_driver(db, driver, season_num)
 
+    def _teams_pick_sponsors(self, db, season_num: int, sorted_teams):
+        if not self.sponsors:
+            return
+        total_teams = len(self.teams)
+
+        # Release expired contracts — but give a 75% chance of renewal if the
+        # sponsor tier still matches the team's current standing
+        position_map_pre = {team: pos for pos, (team, _) in enumerate(sorted_teams, 1)}
+        total_teams = len(self.teams)
+
+        for team in self.teams:
+            if not (team.sponsor and not team.is_sponsor_contract_still_valid()):
+                continue
+            # Sponsor-owned teams always keep their owner sponsor — extend instead of releasing
+            if team.owner_type == OwnerType.SPONSOR and team.owner_sponsor is not None:
+                new_contract = TeamConstants.SPONSOR_OWNER_CONTRACT
+                team.sponsor_contract = new_contract
+                db.query(m.Team).filter_by(id=team.db_id).update({"sponsor_contract": new_contract})
+                continue
+            expiring_sponsor = team.sponsor
+            pos = position_map_pre.get(team, total_teams)
+
+            # What tier is this team eligible for?
+            if pos <= max(5, total_teams // 2):
+                max_eligible = "large"
+            elif pos <= max(total_teams - 3, total_teams * 7 // 10):
+                max_eligible = "medium"
+            else:
+                max_eligible = "small"
+
+            tier_rank = {"large": 3, "medium": 2, "small": 1}
+            sponsor_still_fits = tier_rank[expiring_sponsor.tier] <= tier_rank[max_eligible]
+
+            if sponsor_still_fits and random.random() < 0.75:
+                # Renew — extend contract without changing sponsor
+                new_contract = self._random_sponsor_contract(expiring_sponsor.tier)
+                team.sponsor_contract = new_contract
+                db.query(m.Team).filter_by(id=team.db_id).update({
+                    "sponsor_contract": new_contract,
+                })
+                self._emit_event(
+                    db, season_num, "engine_deal",
+                    f"{team.name} renewed their sponsorship deal with {expiring_sponsor.name} "
+                    f"for {new_contract} more year(s).",
+                )
+            else:
+                self._emit_event(
+                    db, season_num, "engine_deal",
+                    f"{team.name}'s sponsorship deal with {expiring_sponsor.name} has ended.",
+                )
+                team.remove_sponsor()
+
+        # Teams without a sponsor pick in finishing order (best team picks first)
+        for team, _ in sorted_teams:
+            if team.sponsor is not None:
+                continue
+            # Sponsor-owned team detached somehow — re-attach owner sponsor
+            if team.owner_type == OwnerType.SPONSOR and team.owner_sponsor is not None:
+                contract = TeamConstants.SPONSOR_OWNER_CONTRACT
+                team.sponsor = team.owner_sponsor
+                team.sponsor_contract = contract
+                team.owner_sponsor.assign_team(team)
+                db.query(m.Team).filter_by(id=team.db_id).update({
+                    "sponsor_id": team.owner_sponsor.db_id,
+                    "sponsor_contract": contract,
+                })
+                continue
+            pos = position_map_pre.get(team, total_teams)
+
+            # Determine eligible tiers based on finishing position
+            eligible_tiers = ["small"]
+            if pos <= max(total_teams - 3, total_teams * 7 // 10):
+                eligible_tiers.append("medium")
+            if pos <= max(5, total_teams // 2):
+                eligible_tiers.append("large")
+
+            # Pick from the highest eligible tier that has availability.
+            # 80% chance of best tier, 15% next tier down, 5% any tier.
+            tier_order = [t for t in ["large", "medium", "small"] if t in eligible_tiers]
+            chosen = None
+            roll = random.random()
+            tiers_to_try = []
+            if roll < 0.80:
+                tiers_to_try = tier_order[:1]       # best eligible tier only
+            elif roll < 0.95:
+                tiers_to_try = tier_order[:2]       # top two tiers
+            else:
+                tiers_to_try = tier_order           # any eligible tier
+
+            for tier in tiers_to_try:
+                candidates = [s for s in self.sponsors if s.team is None and s.tier == tier]
+                if candidates:
+                    chosen = random.choice(candidates)
+                    break
+
+            if chosen is None:
+                # Fallback: any available sponsor
+                fallback = [s for s in self.sponsors if s.team is None]
+                if not fallback:
+                    continue
+                chosen = random.choice(fallback)
+
+            contract = self._random_sponsor_contract(chosen.tier)
+            team.sponsor = chosen
+            team.sponsor_contract = contract
+            chosen.assign_team(team)
+            db.query(m.Team).filter_by(id=team.db_id).update({
+                "sponsor_id": chosen.db_id,
+                "sponsor_contract": contract,
+            })
+            self._emit_event(
+                db, season_num, "engine_deal",
+                f"{team.name} signed a {contract}-year sponsorship deal with {chosen.name}.",
+            )
+
     def _teams_pick_drivers(self, db, season_num: int, sorted_teams):
         # Release expired contracts
         for team in self.teams:
@@ -293,6 +484,17 @@ class WorldRunner:
             if not team.is_engine_contract_still_valid():
                 team.remove_engine()
 
+        # Lock engine-supplier owned teams to their owner's engine
+        for team in self.teams:
+            if team.owner_type != OwnerType.ENGINE_SUPPLIER or team.owner_engine is None:
+                continue
+            if team.engine is not team.owner_engine:
+                if team.engine is not None:
+                    team.engine.remove_team(team)
+                team.engine = team.owner_engine
+                team.owner_engine.add_team(team)
+                team.engine_contract = TeamConstants.ENGINE_OWNER_CONTRACT
+
         # Championship winner's team and winning team keep their engines
         for team, engine in [
             (winning_driver.team, winning_driver_engine),
@@ -319,6 +521,170 @@ class WorldRunner:
                         f"(power {int(engine.power * 100)}, reliability {int(engine.reliability * 100)}).",
                     )
                     break
+
+    def _check_team_sales(self, db, season_num: int, sorted_teams):
+        """Evaluate struggling teams for potential sale and execute any sales."""
+        for team in list(self.teams):  # iterate copy; self.teams may change
+            if not _is_struggling(team):
+                continue
+            if random.random() > TeamConstants.SALE_PROBABILITY:
+                continue
+            buyer_type = _pick_buyer_type(self.teams, self.engines, self.sponsors)
+            if buyer_type is None:
+                continue
+            new_team = self._execute_sale(db, season_num, team, buyer_type)
+            # Replace old entry in sorted_teams with new team at same position
+            sorted_teams = [
+                (new_team, pts) if t is team else (t, pts)
+                for t, pts in sorted_teams
+            ]
+        return sorted_teams
+
+    def _execute_sale(self, db, season_num: int, old_team: Team, buyer_type: str) -> Team:
+        """Create a successor team entity and transfer assets."""
+        names_dir = self.driver_generator.names_dir
+
+        if buyer_type == OwnerType.ENGINE_SUPPLIER:
+            owning_engine_ids = {t.owner_engine.db_id for t in self.teams if t.owner_engine}
+            free_engines = [e for e in self.engines if e.db_id not in owning_engine_ids]
+            buyer_engine = random.choice(free_engines)
+            buyer_sponsor = None
+            new_name = buyer_engine.name
+            new_primary = buyer_engine.color_primary
+            new_secondary = buyer_engine.color_secondary
+        elif buyer_type == OwnerType.SPONSOR:
+            buyer_engine = None
+            large_free = [s for s in self.sponsors if s.tier == "large" and s.team is None]
+            buyer_sponsor = random.choice(large_free)
+            new_name = buyer_sponsor.name
+            new_primary = buyer_sponsor.color_primary
+            new_secondary = buyer_sponsor.color_secondary
+        else:
+            buyer_engine = None
+            buyer_sponsor = None
+            new_name, new_primary, new_secondary = self._generate_individual_team_identity(
+                old_team.nationality, names_dir
+            )
+
+        # Mark old team inactive
+        db.query(m.Team).filter_by(id=old_team.db_id).update({"is_active": False})
+
+        if buyer_type == OwnerType.ENGINE_SUPPLIER:
+            new_nationality = buyer_engine.nationality
+        elif buyer_type == OwnerType.SPONSOR:
+            new_nationality = buyer_sponsor.nationality
+        else:
+            new_nationality = old_team.nationality  # individual: keep old nationality
+
+        # Create new DB row
+        db_new = m.Team(
+            name=new_name,
+            nationality=new_nationality,
+            color_primary=new_primary,
+            color_secondary=new_secondary,
+            sponsor_id=None,
+            sponsor_contract=None,
+            is_active=True,
+            owner_type=buyer_type,
+            owner_engine_id=buyer_engine.db_id if buyer_engine else None,
+            owner_sponsor_id=buyer_sponsor.db_id if buyer_sponsor else None,
+            predecessor_team_id=old_team.db_id,
+        )
+        db.add(db_new)
+        db.flush()
+
+        # Build new in-memory team
+        new_team = Team(
+            name=new_name,
+            drivers=list(old_team.drivers),
+            driver_contracts=list(old_team.driver_contracts),
+            chassis=old_team.chassis,
+            engine=old_team.engine,
+            color_primary=new_primary,
+            color_secondary=new_secondary,
+            engine_contract=old_team.engine_contract,
+            sponsor=old_team.sponsor,
+            sponsor_contract=old_team.sponsor_contract,
+            db_id=db_new.id,
+            nationality=new_nationality,
+            owner_type=buyer_type,
+            owner_engine=buyer_engine,
+            owner_sponsor=buyer_sponsor,
+        )
+        # Fresh direction, cleared history (new ownership era)
+        from sim.teams import Direction
+        new_team.direction = Direction()
+        new_team.direction.position_history = []
+        new_team.direction.years = 0
+
+        # Engine lock-in for supplier buyers
+        if buyer_type == OwnerType.ENGINE_SUPPLIER:
+            if new_team.engine is not None and new_team.engine is not buyer_engine:
+                new_team.engine.remove_team(old_team)
+            new_team.engine = buyer_engine
+            new_team.engine_contract = TeamConstants.ENGINE_OWNER_CONTRACT
+            buyer_engine.add_team(new_team)
+        elif old_team.engine is not None:
+            # Transfer existing engine team reference from old to new
+            old_team.engine.remove_team(old_team)
+            new_team.engine.add_team(new_team)
+
+        # Sponsor lock-in for sponsor buyers
+        if buyer_type == OwnerType.SPONSOR:
+            if old_team.sponsor is not None:
+                old_team.sponsor.release_team()
+            new_team.sponsor = buyer_sponsor
+            new_team.sponsor_contract = TeamConstants.SPONSOR_OWNER_CONTRACT
+            buyer_sponsor.assign_team(new_team)
+            db.query(m.Team).filter_by(id=db_new.id).update({
+                "sponsor_id": buyer_sponsor.db_id,
+                "sponsor_contract": TeamConstants.SPONSOR_OWNER_CONTRACT,
+            })
+        elif old_team.sponsor is not None:
+            # Transfer existing sponsor reference
+            old_team.sponsor.release_team()
+            if new_team.sponsor is not None:
+                new_team.sponsor.assign_team(new_team)
+
+        # Update driver back-references
+        for drv in new_team.drivers:
+            if drv is not None:
+                drv.team = new_team
+
+        # Swap in self.teams
+        self.teams.remove(old_team)
+        self.teams.append(new_team)
+
+        if buyer_type == OwnerType.ENGINE_SUPPLIER:
+            owner_label = buyer_engine.name
+        elif buyer_type == OwnerType.SPONSOR:
+            owner_label = buyer_sponsor.name
+        else:
+            owner_label = "private individual"
+        self._emit_event(
+            db, season_num, "team_sale",
+            f"{old_team.name} was acquired by {owner_label} and rebranded as {new_name}.",
+        )
+        return new_team
+
+    def _generate_individual_team_identity(self, nationality: str, names_dir: str):
+        """Generate a name and colors for an individually-owned team."""
+        from sim.seeder import _generate_team_colors
+        nat_dir = os.path.join(names_dir, nationality) if nationality else None
+        if nat_dir and os.path.isdir(nat_dir):
+            last_path = os.path.join(nat_dir, "last.txt")
+            try:
+                with open(last_path) as f:
+                    surnames = [s.strip() for s in f if s.strip()]
+                name = random.choice(surnames)
+            except OSError:
+                name = "Racing"
+        else:
+            name = "Racing"
+
+        used_hues: list[float] = []
+        primary, secondary = _generate_team_colors(used_hues)
+        return name, primary, secondary
 
     # ------------------------------------------------------------------ #
     # Helpers                                                              #
@@ -367,6 +733,15 @@ class WorldRunner:
             db, season_num, "driver_debut",
             f"{new_driver.name} {new_driver.flag} (age {new_driver.age}) entered the driver pool.",
         )
+
+    @staticmethod
+    def _random_sponsor_contract(tier: str) -> int:
+        if tier == "large":
+            return random.randint(4, 6)
+        elif tier == "medium":
+            return random.randint(3, 5)
+        else:
+            return random.randint(2, 4)
 
     @staticmethod
     def _random_contract_years() -> int:

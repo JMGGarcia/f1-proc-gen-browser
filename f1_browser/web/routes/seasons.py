@@ -24,27 +24,37 @@ def seasons_list(request: Request, db: Session = Depends(get_db_session)):
     for s in seasons:
         drv_stats = db.query(DriverSeasonStats).filter_by(season_id=s.id, championship_position=1).first()
         tm_stats = db.query(TeamSeasonStats).filter_by(season_id=s.id, championship_position=1).first()
+        from db.models import Sponsor
         driver_obj = db.query(Driver).filter_by(id=drv_stats.driver_id).first() if drv_stats else None
+        # Driver champion's own team/engine/sponsor
+        drv_team_obj = db.query(Team).filter_by(id=drv_stats.team_id).first() if (drv_stats and drv_stats.team_id) else None
+        drv_engine_obj = db.query(Engine).filter_by(id=drv_stats.engine_id).first() if (drv_stats and drv_stats.engine_id) else None
+        # Constructor champion
         team_obj = db.query(Team).filter_by(id=tm_stats.team_id).first() if tm_stats else None
-        engine_obj = db.query(Engine).filter_by(id=tm_stats.engine_id).first() if (tm_stats and tm_stats.engine_id) else None
 
-        engine_power = None
-        if tm_stats and tm_stats.engine_id:
-            eng_season = db.query(EngineSeasonStats).filter_by(
-                engine_id=tm_stats.engine_id, season_id=s.id
-            ).first()
-            if eng_season:
-                engine_power = int(eng_season.power * 100)
+        drv_engine_power = None
+        if drv_stats and drv_stats.engine_id:
+            eng_s = db.query(EngineSeasonStats).filter_by(engine_id=drv_stats.engine_id, season_id=s.id).first()
+            if eng_s:
+                drv_engine_power = int(eng_s.power * 100)
+
+        drv_sponsor_obj = None
+        if drv_stats and drv_stats.team_id:
+            drv_tss = db.query(TeamSeasonStats).filter_by(team_id=drv_stats.team_id, season_id=s.id).first()
+            if drv_tss and drv_tss.sponsor_id:
+                drv_sponsor_obj = db.query(Sponsor).filter_by(id=drv_tss.sponsor_id).first()
 
         summaries.append({
             "season": s,
             "driver": driver_obj,
             "driver_flag": NATIONALITY_FLAGS.get(driver_obj.nationality, "") if driver_obj else "",
             "driver_skill": int(drv_stats.skill * 100) if drv_stats else None,
+            "driver_team": drv_team_obj,
+            "driver_engine": drv_engine_obj,
+            "driver_engine_power": drv_engine_power,
+            "driver_sponsor": drv_sponsor_obj,
+            "driver_chassis": int(drv_stats.skill * 100) if drv_stats else None,
             "team": team_obj,
-            "engine": engine_obj,
-            "champion_chassis": int(tm_stats.chassis * 100) if tm_stats else None,
-            "engine_power": engine_power,
         })
 
     return templates.TemplateResponse(request, "seasons_list.html", {

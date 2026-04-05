@@ -5,6 +5,13 @@ from typing import List, Optional, Tuple
 
 from sim.constants import SimulationConstants, TeamConstants
 from sim.drivers import Driver
+from sim.sponsors import Sponsor
+
+
+class OwnerType:
+    INDIVIDUAL = "individual"
+    ENGINE_SUPPLIER = "engine_supplier"
+    SPONSOR = "sponsor"
 
 
 class Engine:
@@ -16,6 +23,7 @@ class Engine:
         color_primary: str,
         color_secondary: str,
         db_id: int = 0,
+        nationality: Optional[str] = None,
     ):
         self.db_id = db_id
         self.name = name
@@ -23,6 +31,7 @@ class Engine:
         self.reliability = reliability
         self.color_primary = color_primary
         self.color_secondary = color_secondary
+        self.nationality = nationality
         self.teams: List[Team] = []
         self.value: float = 0.0
         self.update_value()
@@ -104,7 +113,13 @@ class Team:
         color_primary: str,
         color_secondary: str,
         engine_contract: int = 3,
+        sponsor: Optional[Sponsor] = None,
+        sponsor_contract: int = 0,
         db_id: int = 0,
+        nationality: Optional[str] = None,
+        owner_type: str = OwnerType.INDIVIDUAL,
+        owner_engine: Optional[Engine] = None,
+        owner_sponsor: Optional[Sponsor] = None,
     ):
         if len(drivers) != TeamConstants.MAX_DRIVERS:
             raise ValueError(f"Team must have exactly {TeamConstants.MAX_DRIVERS} drivers")
@@ -117,7 +132,13 @@ class Team:
         self.color_primary = color_primary
         self.color_secondary = color_secondary
         self.engine_contract = engine_contract
+        self.sponsor: Optional[Sponsor] = sponsor
+        self.sponsor_contract: int = sponsor_contract
         self.direction = Direction()
+        self.nationality = nationality
+        self.owner_type = owner_type
+        self.owner_engine: Optional[Engine] = owner_engine
+        self.owner_sponsor: Optional[Sponsor] = owner_sponsor
 
     @property
     def avg_skill_100(self) -> int:
@@ -137,6 +158,18 @@ class Team:
         self.engine_contract -= 1
         # Only treat as expired when it hits exactly 0; negative means already removed
         return self.engine_contract != 0
+
+    def remove_sponsor(self):
+        if self.sponsor is None:
+            return
+        sponsor = self.sponsor
+        self.sponsor = None
+        self.sponsor_contract = -1
+        sponsor.release_team()
+
+    def is_sponsor_contract_still_valid(self) -> bool:
+        self.sponsor_contract -= 1
+        return self.sponsor_contract != 0
 
     def is_drivers_contracts_still_valid(self) -> Tuple[bool, bool]:
         results = []

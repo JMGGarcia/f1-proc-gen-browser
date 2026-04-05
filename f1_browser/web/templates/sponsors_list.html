@@ -1,0 +1,57 @@
+{% extends "base.html" %}
+{% block title %}Sponsors — F1 World{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <h1>SPONSORS</h1>
+  <div class="subtitle">Active sponsorship deals across the paddock</div>
+</div>
+
+{% macro sponsor_table(rows) %}
+<table class="data-table">
+  <thead>
+    <tr>
+      <th>Sponsor</th>
+      <th>Current Team</th>
+    </tr>
+  </thead>
+  <tbody>
+    {% for sp in rows %}
+    <tr>
+      <td>
+        <span class="sponsor-badge"
+          style="background:{{ sp.color_primary }};color:{{ sp.color_secondary }}">
+          {{ sp.name }}
+        </span>
+      </td>
+      <td>
+        {% if sp.current_team %}
+        <a href="/teams/{{ sp.current_team.id }}">
+          <span class="team-badge"
+            style="background:{{ sp.current_team.color_primary }};color:{{ sp.current_team.color_secondary }}">
+            {{ sp.current_team.name }}
+          </span>
+        </a>
+        {% else %}
+        <span style="color:var(--muted)">Unattached</span>
+        {% endif %}
+      </td>
+    </tr>
+    {% endfor %}
+  </tbody>
+</table>
+{% endmacro %}
+
+<h2>LARGE SPONSORS</h2>
+<div class="subtitle" style="margin-bottom:12px">Top teams only</div>
+{{ sponsor_table(large) }}
+
+<h2>MEDIUM SPONSORS</h2>
+<div class="subtitle" style="margin-bottom:12px">Upper half teams</div>
+{{ sponsor_table(medium) }}
+
+<h2>SMALL SPONSORS</h2>
+<div class="subtitle" style="margin-bottom:12px">Any team</div>
+{{ sponsor_table(small) }}
+
+{% endblock %}

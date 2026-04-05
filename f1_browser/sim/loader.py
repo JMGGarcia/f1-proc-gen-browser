@@ -14,11 +14,25 @@ from sqlalchemy.orm import Session
 from db import models as m
 from sim.constants import SimulationConstants
 from sim.drivers import Driver, DriverGenerator
-from sim.teams import Direction, Engine, Team
+from sim.sponsors import Sponsor
+from sim.teams import Direction, Engine, OwnerType, Team
 from sim.tracks import Track
 
 
 def load_world_from_db(db: Session, names_dir: str = "./names"):
+    # ── Sponsors ─────────────────────────────────────────────────────────
+    db_sponsors = db.query(m.Sponsor).order_by(m.Sponsor.id).all()
+    sponsors = []
+    sponsor_map: dict[int, Sponsor] = {}
+    for s in db_sponsors:
+        sp = Sponsor(
+            name=s.name, tier=s.tier,
+            color_primary=s.color_primary, color_secondary=s.color_secondary,
+            db_id=s.id, nationality=s.nationality,
+        )
+        sponsors.append(sp)
+        sponsor_map[s.id] = sp
+
     # ── Tracks ──────────────────────────────────────────────────────────
     db_tracks = db.query(m.Track).order_by(m.Track.id).all()
     tracks = [
@@ -50,6 +64,7 @@ def load_world_from_db(db: Session, names_dir: str = "./names"):
             color_primary=e.color_primary,
             color_secondary=e.color_secondary,
             db_id=e.id,
+            nationality=e.nationality,
         )
         engines.append(eng)
         engine_map[e.id] = eng
@@ -84,7 +99,7 @@ def load_world_from_db(db: Session, names_dir: str = "./names"):
         driver_map[d.id] = drv
 
     # ── Teams ────────────────────────────────────────────────────────────
-    db_teams = db.query(m.Team).order_by(m.Team.id).all()
+    db_teams = db.query(m.Team).filter_by(is_active=True).order_by(m.Team.id).all()
     teams: list[Team] = []
     for t in db_teams:
         ts = (
@@ -113,6 +128,11 @@ def load_world_from_db(db: Session, names_dir: str = "./names"):
             assigned_drivers.append(None)
         assigned_drivers = assigned_drivers[:2]
 
+        sponsor = sponsor_map.get(t.sponsor_id) if t.sponsor_id else None
+        sponsor_contract = t.sponsor_contract if t.sponsor_contract else 3
+        owner_engine = engine_map.get(t.owner_engine_id) if t.owner_engine_id else None
+        owner_sponsor = sponsor_map.get(t.owner_sponsor_id) if t.owner_sponsor_id else None
+
         team = Team(
             name=t.name,
             drivers=assigned_drivers,
@@ -122,7 +142,13 @@ def load_world_from_db(db: Session, names_dir: str = "./names"):
             color_primary=t.color_primary,
             color_secondary=t.color_secondary,
             engine_contract=3,         # approximate
+            sponsor=sponsor,
+            sponsor_contract=sponsor_contract,
             db_id=t.id,
+            nationality=t.nationality,
+            owner_type=t.owner_type or OwnerType.INDIVIDUAL,
+            owner_engine=owner_engine,
+            owner_sponsor=owner_sponsor,
         )
         team.direction = direction
         teams.append(team)
@@ -133,9 +159,11 @@ def load_world_from_db(db: Session, names_dir: str = "./names"):
                 drv.team = team
         if engine:
             engine.add_team(team)
+        if sponsor:
+            sponsor.assign_team(team)
 
     driver_gen = DriverGenerator(names_dir=names_dir)
-    return tracks, engines, teams, drivers, driver_gen
+    return tracks, engines, teams, drivers, driver_gen, sponsors
 
 
 def _rebuild_direction(db: Session, team_id: int, latest_ts, latest_season_num: int) -> Direction:

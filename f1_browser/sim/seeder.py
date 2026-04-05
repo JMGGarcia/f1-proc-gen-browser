@@ -4,12 +4,15 @@ Creates the initial world state in the database and returns in-memory sim object
 
 from __future__ import annotations
 
+import colorsys
 import os
 import random
 from typing import List, Tuple
 
 from db import models as m
+from sim.constants import SimulationConstants
 from sim.drivers import Driver, DriverGenerator
+from sim.sponsors import Sponsor, SPONSOR_DATA
 from sim.teams import Engine, Team
 from sim.tracks import Track
 
@@ -41,49 +44,153 @@ def _make_tracks() -> List[Track]:
 
 
 def _make_engines() -> List[Engine]:
-    # (name, color_primary, color_secondary)
+    # (name, color_primary, color_secondary, nationality)
     data = [
-        ("SEAT",      "#CC0000", "#303030"),
-        ("Chevrolet", "#FFD700", "#303030"),
-        ("Jaguar",    "#006400", "#FFD700"),
-        ("Audi",      "#303030", "#FFFFFF"),
-        ("Toyota",    "#CC0000", "#FFFFFF"),
-        ("Ford",      "#003087", "#FFFFFF"),
-        ("Hyundai",   "#002C5F", "#FFFFFF"),
-        ("BMW",       "#0066CC", "#FFFFFF"),
-        ("Honda",     "#1B1B1B", "#FFFFFF"),
-        ("Renault",   "#FFE000", "#000000"),
-        ("Mercedes",  "#00D2BE", "#000000"),
-        ("Ferrari",   "#DC0000", "#FFD700"),
+        ("SEAT",      "#CC0000", "#303030", "ES"),
+        ("Chevrolet", "#FFD700", "#303030", "US"),
+        ("Jaguar",    "#006400", "#FFD700", "EN"),
+        ("Audi",      "#303030", "#FFFFFF", "GE"),
+        ("Toyota",    "#CC0000", "#FFFFFF", "JP"),
+        ("Ford",      "#003087", "#FFFFFF", "US"),
+        ("Hyundai",   "#002C5F", "#FFFFFF", "KR"),
+        ("BMW",       "#0066CC", "#FFFFFF", "GE"),
+        ("Honda",     "#1B1B1B", "#FFFFFF", "JP"),
+        ("Renault",   "#FFE000", "#000000", "FR"),
+        ("Mercedes",  "#C0C0C0", "#111111", "GE"),
+        ("Ferrari",   "#DC0000", "#FFD700", "IT"),
     ]
     return [
         Engine(name=n, power=random.random(), reliability=0.8,
-               color_primary=cp, color_secondary=cs)
-        for n, cp, cs in data
+               color_primary=cp, color_secondary=cs, nationality=nat)
+        for n, cp, cs, nat in data
     ]
 
 
-def _make_team_configs() -> list:
-    # (name, color_primary, color_secondary)
+def _hsl_to_hex(h: float, s: float, l: float) -> str:
+    """Convert HSL (0-1 each) to a CSS hex color string."""
+    r, g, b = colorsys.hls_to_rgb(h, l, s)  # colorsys uses HLS order
+    return "#{:02X}{:02X}{:02X}".format(int(r * 255), int(g * 255), int(b * 255))
+
+
+def _generate_team_colors(used_hues: list[float]) -> tuple[str, str]:
+    """
+    Generate a (primary, secondary) color pair that looks like a real racing livery:
+    - 70%: rich/deep tone (Ferrari red, Williams navy, forest green) + white text
+    - 30%: bold/bright tone (McLaren papaya, Renault yellow, vivid mid-tones) + dark text
+    - High saturation (0.60-1.0) so colors are vivid, not washed out
+    - Hues spaced at least 30° apart so teams look distinct
+    """
+    max_attempts = 60
+    for _ in range(max_attempts):
+        hue = random.random()
+        min_dist = min((abs(hue - h) for h in used_hues), default=1.0)
+        min_dist = min(min_dist, 1.0 - min_dist)  # wrap-around distance
+        if used_hues and min_dist < 0.083:  # ~30° on the 360° wheel
+            continue
+
+        sat = random.uniform(0.60, 1.0)
+
+        # Accent options for dark backgrounds (replaces white occasionally)
+        dark_bg_accents = [
+            "#F0F0F0",  # white (most common)
+            "#F0F0F0",
+            "#F0F0F0",
+            "#FFD700",  # bright yellow
+            "#FFB300",  # gold
+            "#FF8C00",  # dark orange
+            "#00E5FF",  # cyan
+            "#C0C0C0",  # silver
+        ]
+        # Accent options for light backgrounds (replaces black occasionally)
+        light_bg_accents = [
+            "#111111",  # black (most common)
+            "#111111",
+            "#111111",
+            "#0A1628",  # deep navy
+            "#1A0A0A",  # dark burgundy
+            "#0A1A0A",  # dark forest
+        ]
+
+        if random.random() < 0.70:
+            # Rich, deep tone — Ferrari red, Williams navy, dark green
+            lightness = random.uniform(0.20, 0.38)
+            primary = _hsl_to_hex(hue, sat, lightness)
+            secondary = random.choice(dark_bg_accents)
+        else:
+            # Bold, bright tone — McLaren papaya, Renault yellow
+            lightness = random.uniform(0.45, 0.60)
+            primary = _hsl_to_hex(hue, sat, lightness)
+            secondary = random.choice(light_bg_accents)
+
+        used_hues.append(hue)
+        return primary, secondary
+
+    # Fallback
+    used_hues.append(random.random())
+    return "#1C2340", "#F0F0F0"
+
+
+def _generate_team_configs(names_dir: str, n: int = 10) -> list[tuple[str, str, str, str]]:
+    """
+    Generate n team configs: (name, nationality, color_primary, color_secondary).
+    Names are drawn from last name files, one per nationality to spread teams around.
+    """
+    # All available nationalities
+    all_nats = [d for d in os.listdir(names_dir) if os.path.isdir(os.path.join(names_dir, d))]
+    nats = random.sample(all_nats, min(n, len(all_nats)))
+    if len(nats) < n:
+        # If fewer nationalities than teams, allow duplicates
+        nats += random.choices(all_nats, k=n - len(nats))
+
+    used_names: set[str] = set()
+    used_hues: list[float] = []
+    configs = []
+
+    for nat in nats:
+        last_path = os.path.join(names_dir, nat, "last.txt")
+        with open(last_path) as f:
+            surnames = [s.strip() for s in f.readlines() if s.strip()]
+
+        # Pick a unique surname
+        candidates = [s for s in surnames if s not in used_names]
+        if not candidates:
+            candidates = surnames
+        name = random.choice(candidates)
+        used_names.add(name)
+
+        cp, cs = _generate_team_colors(used_hues)
+        configs.append((name, nat, cp, cs))
+
+    return configs
+
+
+def _make_sponsors() -> List[Sponsor]:
     return [
-        ("Lucky Strike",  "#CC0000", "#F5DEB3"),
-        ("Marlboro",      "#FF0000", "#FFFFFF"),
-        ("Phillip Morris","#1E90FF", "#FFFFFF"),
-        ("Chesterfield",  "#FF8700", "#000000"),
-        ("Camel",         "#D4AF37", "#003087"),
-        ("Newport",       "#20B2AA", "#000000"),
-        ("Winston",       "#00008B", "#FFFFFF"),
-        ("West",          "#8B0000", "#C0C0C0"),
-        ("Rothmans",      "#00005F", "#FFD700"),
-        ("Pall Mall",     "#006400", "#FFFFFF"),
+        Sponsor(name=name, tier=tier, color_primary=cp, color_secondary=cs, nationality=nat)
+        for name, tier, cp, cs, nat in SPONSOR_DATA
     ]
 
 
 def seed_world(db, names_dir: str = "./names") -> Tuple[
-    List[Track], List[Engine], List[Team], List[Driver], DriverGenerator
+    List[Track], List[Engine], List[Team], List[Driver], DriverGenerator, List[Sponsor]
 ]:
-    """Seed tracks, engines, teams and initial driver pool into the DB.
+    """Seed tracks, engines, teams, sponsors and initial driver pool into the DB.
     Returns sim objects with db_id fields populated."""
+
+    # --- Sponsors ---
+    sponsors: List[Sponsor] = _make_sponsors()
+    for sp in sponsors:
+        db.add(m.Sponsor(
+            name=sp.name, tier=sp.tier,
+            color_primary=sp.color_primary, color_secondary=sp.color_secondary,
+            nationality=sp.nationality,
+        ))
+    db.flush()
+    all_db_sponsors = db.query(m.Sponsor).order_by(m.Sponsor.id).all()
+    sponsor_map: dict[int, Sponsor] = {}
+    for sp, db_sp in zip(sponsors, all_db_sponsors):
+        sp.db_id = db_sp.id
+        sponsor_map[db_sp.id] = sp
 
     # --- Tracks ---
     tracks: List[Track] = _make_tracks()
@@ -109,6 +216,7 @@ def seed_world(db, names_dir: str = "./names") -> Tuple[
             value=engine.value,
             color_primary=engine.color_primary,
             color_secondary=engine.color_secondary,
+            nationality=engine.nationality,
         )
         db.add(db_engine)
     db.flush()
@@ -118,7 +226,6 @@ def seed_world(db, names_dir: str = "./names") -> Tuple[
 
     # --- Drivers ---
     driver_gen = DriverGenerator(names_dir=names_dir)
-    from sim.constants import SimulationConstants
     drivers: List[Driver] = [driver_gen.generate_driver() for _ in range(SimulationConstants.DRIVERS_POOL)]
 
     for driver in drivers:
@@ -137,17 +244,26 @@ def seed_world(db, names_dir: str = "./names") -> Tuple[
         driver.db_id = db_driver.id
 
     # --- Teams ---
-    team_configs = _make_team_configs()
+    team_configs = _generate_team_configs(names_dir, n=10)
     teams: List[Team] = []
     driver_idx = 0
 
-    for i, (team_name, cp, cs) in enumerate(team_configs):
+    # Shuffle sponsors so initial assignment is random across tiers
+    shuffled_sponsors = sponsors[:]
+    random.shuffle(shuffled_sponsors)
+    sponsor_pool = iter(shuffled_sponsors)
+
+    for team_name, nat, cp, cs in team_configs:
         drv1 = drivers[driver_idx]
         drv2 = drivers[driver_idx + 1]
         driver_idx += 2
 
         engine = random.choice(engines)
-        contract_years = random.randint(1, 5)
+        engine_contract = random.randint(1, 5)
+
+        # Assign one sponsor per team from the shuffled pool
+        team_sponsor = next(sponsor_pool)
+        sponsor_contract = random.randint(3, 6)
 
         team = Team(
             name=team_name,
@@ -157,14 +273,22 @@ def seed_world(db, names_dir: str = "./names") -> Tuple[
             engine=engine,
             color_primary=cp,
             color_secondary=cs,
-            engine_contract=contract_years,
+            engine_contract=engine_contract,
+            sponsor=team_sponsor,
+            sponsor_contract=sponsor_contract,
+            nationality=nat,
         )
         teams.append(team)
         engine.add_team(team)
+        team_sponsor.assign_team(team)
         drv1.team = team
         drv2.team = team
 
-        db_team = m.Team(name=team_name, color_primary=cp, color_secondary=cs)
+        db_team = m.Team(
+            name=team_name, color_primary=cp, color_secondary=cs, nationality=nat,
+            sponsor_id=team_sponsor.db_id, sponsor_contract=sponsor_contract,
+            is_active=True, owner_type="individual",
+        )
         db.add(db_team)
 
     db.flush()
@@ -173,4 +297,4 @@ def seed_world(db, names_dir: str = "./names") -> Tuple[
         team.db_id = db_team.id
 
     db.commit()
-    return tracks, engines, teams, drivers, driver_gen
+    return tracks, engines, teams, drivers, driver_gen, sponsors
