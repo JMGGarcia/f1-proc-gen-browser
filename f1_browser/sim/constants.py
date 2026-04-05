@@ -18,8 +18,8 @@ class TeamConstants:
     STRUGGLING_THRESHOLD = 5           # constructors position outside top-N to count as poor season
     SALE_PROBABILITY = 0.65
     BUYER_WEIGHTS = {"individual": 60, "engine_supplier": 30, "sponsor": 10}
-    MAX_ENGINE_SUPPLIER_OWNERS = 3
-    MAX_SPONSOR_OWNERS = 2
+    MAX_ENGINE_SUPPLIER_OWNERS = 4
+    MAX_SPONSOR_OWNERS = 3
     ENGINE_OWNER_CONTRACT = 10         # long lock-in contract years when engine supplier buys team
     SPONSOR_OWNER_CONTRACT = 10
 

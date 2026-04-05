@@ -39,7 +39,9 @@
     <tr>
       <th>#</th>
       <th>Driver Champion</th>
-      <th>Team Champion</th>
+      <th>Team</th>
+      <th>Engine</th>
+      <th>Sponsor</th>
     </tr>
   </thead>
   <tbody>
@@ -49,22 +51,32 @@
       <td>
         {% if s.driver %}
         <a href="/drivers/{{ s.driver.id }}">{{ s.driver.first_name }} {{ s.driver.last_name }}</a>
-        {% if s.driver_team %}
-        <span class="team-badge"
-          style="background:{{ s.driver_team.color_primary }};color:{{ s.driver_team.color_secondary }};font-size:11px">
-          {{ s.driver_team.name }}
-        </span>
-        {% endif %}
         {% else %}—{% endif %}
       </td>
       <td>
-        {% if s.team %}
-        <a href="/teams/{{ s.team.id }}">
+        {% if s.driver_team %}
+        <a href="/teams/{{ s.driver_team.id }}">
           <span class="team-badge"
-            style="background:{{ s.team.color_primary }};color:{{ s.team.color_secondary }}">
-            {{ s.team.name }}
+            style="background:{{ s.driver_team.color_primary }};color:{{ s.driver_team.color_secondary }}">
+            {{ s.driver_team.name }}
           </span>
         </a>
+        {% else %}—{% endif %}
+      </td>
+      <td>
+        {% if s.driver_engine %}
+        <span class="engine-badge"
+          style="background:{{ s.driver_engine.color_primary }};color:{{ s.driver_engine.color_secondary }}">
+          {{ s.driver_engine.name }}
+        </span>
+        {% else %}—{% endif %}
+      </td>
+      <td>
+        {% if s.driver_sponsor %}
+        <span class="sponsor-badge"
+          style="background:{{ s.driver_sponsor.color_primary }};color:{{ s.driver_sponsor.color_secondary }}">
+          {{ s.driver_sponsor.name }}
+        </span>
         {% else %}—{% endif %}
       </td>
     </tr>

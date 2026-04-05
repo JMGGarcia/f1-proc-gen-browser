@@ -562,8 +562,8 @@ class WorldRunner:
         else:
             buyer_engine = None
             buyer_sponsor = None
-            new_name, new_primary, new_secondary = self._generate_individual_team_identity(
-                old_team.nationality, names_dir
+            new_name, new_primary, new_secondary, new_nationality = self._generate_individual_team_identity(
+                names_dir
             )
 
         # Mark old team inactive
@@ -573,8 +573,6 @@ class WorldRunner:
             new_nationality = buyer_engine.nationality
         elif buyer_type == OwnerType.SPONSOR:
             new_nationality = buyer_sponsor.nationality
-        else:
-            new_nationality = old_team.nationality  # individual: keep old nationality
 
         # Create new DB row
         db_new = m.Team(
@@ -667,11 +665,24 @@ class WorldRunner:
         )
         return new_team
 
-    def _generate_individual_team_identity(self, nationality: str, names_dir: str):
-        """Generate a name and colors for an individually-owned team."""
+    def _generate_individual_team_identity(self, names_dir: str):
+        """Generate a name, colors, and nationality for an individually-owned team."""
         from sim.seeder import _generate_team_colors
-        nat_dir = os.path.join(names_dir, nationality) if nationality else None
-        if nat_dir and os.path.isdir(nat_dir):
+        
+        # Pick a random nationality from available directories
+        try:
+            available_nationalities = [
+                d for d in os.listdir(names_dir)
+                if os.path.isdir(os.path.join(names_dir, d))
+            ]
+        except OSError:
+            available_nationalities = []
+        
+        chosen_nationality = random.choice(available_nationalities) if available_nationalities else None
+        
+        # Generate name from chosen nationality
+        if chosen_nationality:
+            nat_dir = os.path.join(names_dir, chosen_nationality)
             last_path = os.path.join(nat_dir, "last.txt")
             try:
                 with open(last_path) as f:
@@ -684,7 +695,7 @@ class WorldRunner:
 
         used_hues: list[float] = []
         primary, secondary = _generate_team_colors(used_hues)
-        return name, primary, secondary
+        return name, primary, secondary, chosen_nationality
 
     # ------------------------------------------------------------------ #
     # Helpers                                                              #

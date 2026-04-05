@@ -1,9 +1,14 @@
 from __future__ import annotations
 
 import random
-from typing import List, Optional, Tuple
+from typing import List, Optional, Tuple, TYPE_CHECKING
 
 from sim.constants import SimulationConstants, TeamConstants
+from sim.countries import get_country
+
+if TYPE_CHECKING:
+    from sim.countries import Country
+
 from sim.drivers import Driver
 from sim.sponsors import Sponsor
 
@@ -23,7 +28,7 @@ class Engine:
         color_primary: str,
         color_secondary: str,
         db_id: int = 0,
-        nationality: Optional[str] = None,
+        nationality: Country | str | None = None,
     ):
         self.db_id = db_id
         self.name = name
@@ -31,10 +36,21 @@ class Engine:
         self.reliability = reliability
         self.color_primary = color_primary
         self.color_secondary = color_secondary
-        self.nationality = nationality
+        
+        # Handle both Country objects and string codes
+        if isinstance(nationality, str):
+            self.country = get_country(nationality)
+        else:
+            self.country = nationality
+        
         self.teams: List[Team] = []
         self.value: float = 0.0
         self.update_value()
+    
+    @property
+    def nationality(self) -> str | None:
+        """Return nationality code for database storage."""
+        return self.country.code if self.country else None
 
     def update_value(self):
         self.value = (self.power + self.reliability) / 2
@@ -116,7 +132,7 @@ class Team:
         sponsor: Optional[Sponsor] = None,
         sponsor_contract: int = 0,
         db_id: int = 0,
-        nationality: Optional[str] = None,
+        nationality: Country | str | None = None,
         owner_type: str = OwnerType.INDIVIDUAL,
         owner_engine: Optional[Engine] = None,
         owner_sponsor: Optional[Sponsor] = None,
@@ -135,10 +151,21 @@ class Team:
         self.sponsor: Optional[Sponsor] = sponsor
         self.sponsor_contract: int = sponsor_contract
         self.direction = Direction()
-        self.nationality = nationality
+        
+        # Handle both Country objects and string codes
+        if isinstance(nationality, str):
+            self.country = get_country(nationality)
+        else:
+            self.country = nationality
+        
         self.owner_type = owner_type
         self.owner_engine: Optional[Engine] = owner_engine
         self.owner_sponsor: Optional[Sponsor] = owner_sponsor
+    
+    @property
+    def nationality(self) -> str | None:
+        """Return nationality code for database storage."""
+        return self.country.code if self.country else None
 
     @property
     def avg_skill_100(self) -> int:

@@ -41,14 +41,21 @@ def teams_list(request: Request, db: Session = Depends(get_db_session)):
     for team in active_teams:
         _attach_team_display_data(team, db)
 
-    old_teams = db.query(Team).filter_by(is_active=False).order_by(Team.name).all()
-    for team in old_teams:
-        _attach_team_display_data(team, db)
-        team.successor = db.query(Team).filter_by(predecessor_team_id=team.id).first()
-
     return templates.TemplateResponse(request, "teams_list.html", {
         "teams": active_teams,
-        "old_teams": old_teams,
+    })
+
+
+@router.get("/former")
+def teams_former(request: Request, db: Session = Depends(get_db_session)):
+    """List of inactive/former teams."""
+    old_teams = db.query(Team).filter_by(is_active=False).order_by(Team.name).all()
+    for team in old_teams:
+        team.flag = NATIONALITY_FLAGS.get(team.nationality, "")
+        team.successor = db.query(Team).filter_by(predecessor_team_id=team.id).first()
+
+    return templates.TemplateResponse(request, "teams_former.html", {
+        "former_teams": old_teams,
     })
 
 

@@ -2,10 +2,13 @@ from __future__ import annotations
 
 import os
 import random
-from typing import Dict, List, Optional
+from typing import Dict, List, Optional, TYPE_CHECKING
 
 from sim.constants import DriverConstants, SimulationConstants
-from sim.flags import NATIONALITY_FLAGS
+from sim.countries import get_country, get_all_countries
+
+if TYPE_CHECKING:
+    from sim.countries import Country
 
 
 class DriverGenerator:
@@ -15,20 +18,36 @@ class DriverGenerator:
         self.name_structure = self._load_names()
 
     def generate_driver(self) -> Driver:
-        nat = random.choice(list(self.name_structure.keys()))
-        first_name = random.choice(self.name_structure[nat]["first"])
-        last_name = random.choice(self.name_structure[nat]["last"])
+        nat_code = self._select_weighted_country_for_driver()
+        country = get_country(nat_code)
+        first_name = random.choice(self.name_structure[nat_code]["first"])
+        last_name = random.choice(self.name_structure[nat_code]["last"])
         skill = random.random() * DriverConstants.SKILL_MULTIPLIER
         d = Driver(
             db_id=0,
             first_name=first_name,
             last_name=last_name,
-            nationality=nat,
+            country=country,
             skill=skill,
             age=random.randint(SimulationConstants.GEN_MIN_AGE, SimulationConstants.GEN_MAX_AGE),
         )
         self.current_id += 1
         return d
+
+    def _select_weighted_country_for_driver(self) -> str:
+        """Select a country for driver generation weighted by all 4 characteristics equally."""
+        available_codes = list(self.name_structure.keys())
+        # Use pre-computed driver weights from Country objects
+        weights = []
+        for code in available_codes:
+            country = get_country(code)
+            if country:
+                weights.append(country.driver_weight)
+            else:
+                weights.append(1.0)  # fallback weight
+        
+        # Weighted random choice
+        return random.choices(available_codes, weights=weights, k=1)[0]
 
     def _load_names(self) -> Dict[str, Dict[str, List[str]]]:
         strut: Dict[str, Dict[str, List[str]]] = {}
@@ -48,8 +67,8 @@ class Driver:
         db_id: int,
         first_name: str,
         last_name: str,
-        nationality: str,
-        skill: float,
+        country: Country | str = None,
+        skill: float = 0,
         form: str = "M",
         age: int = 20,
     ):
@@ -57,17 +76,28 @@ class Driver:
         self.first_name = first_name
         self.last_name = last_name
         self.name = f"{first_name} {last_name}"
-        self.nationality = nationality
+        
+        # Handle both Country objects and string codes for backward compatibility
+        if isinstance(country, str):
+            self.country = get_country(country) or get_country("PT")  # fallback
+        else:
+            self.country = country
+        
         self.base_skill = skill
         self.skill = skill
         self.top_skill = skill
         self.form = form
         self.age = age
         self.team: Optional[object] = None  # set by Team
-
+    
+    @property
+    def nationality(self) -> str:
+        """Return nationality code for database storage."""
+        return self.country.code if self.country else "PT"
+    
     @property
     def flag(self) -> str:
-        return NATIONALITY_FLAGS.get(self.nationality, "")
+        return self.country.flag if self.country else ""
 
     @property
     def skill_100(self) -> int:

@@ -1,7 +1,7 @@
 from fastapi import APIRouter, Depends, Request
 from sqlalchemy.orm import Session
 
-from db.models import Driver, DriverSeasonStats, Season, Team, TeamSeasonStats, WorldEvent
+from db.models import Driver, DriverSeasonStats, Engine, Season, Sponsor, Team, TeamSeasonStats, WorldEvent
 from db.session import get_db_session
 from sim.flags import NATIONALITY_FLAGS
 from web import sim_state
@@ -30,12 +30,24 @@ def index(request: Request, db: Session = Depends(get_db_session)):
     summaries = []
     for s in recent_seasons:
         drv = db.query(DriverSeasonStats).filter_by(season_id=s.id, championship_position=1).first()
-        tm = db.query(TeamSeasonStats).filter_by(season_id=s.id, championship_position=1).first()
         driver_obj = db.query(Driver).filter_by(id=drv.driver_id).first() if drv else None
-        # Show the driver champion's team, not the constructor champion
         driver_team_obj = db.query(Team).filter_by(id=drv.team_id).first() if (drv and drv.team_id) else None
-        team_obj = db.query(Team).filter_by(id=tm.team_id).first() if tm else None
-        summaries.append({"season": s, "driver": driver_obj, "driver_team": driver_team_obj, "team": team_obj})
+        driver_engine_obj = db.query(Engine).filter_by(id=drv.engine_id).first() if (drv and drv.engine_id) else None
+        driver_sponsor_obj = None
+        
+        # Get sponsor from team's season stats
+        if driver_team_obj and drv:
+            sponsor_stats = db.query(TeamSeasonStats).filter_by(team_id=driver_team_obj.id, season_id=s.id).first()
+            if sponsor_stats and sponsor_stats.sponsor_id:
+                driver_sponsor_obj = db.query(Sponsor).filter_by(id=sponsor_stats.sponsor_id).first()
+        
+        summaries.append({
+            "season": s,
+            "driver": driver_obj,
+            "driver_team": driver_team_obj,
+            "driver_engine": driver_engine_obj,
+            "driver_sponsor": driver_sponsor_obj,
+        })
 
     return templates.TemplateResponse(request, "index.html", {
         "recent_events": recent_events,

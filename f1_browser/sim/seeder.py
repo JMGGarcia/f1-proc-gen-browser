@@ -11,6 +11,7 @@ from typing import List, Tuple
 
 from db import models as m
 from sim.constants import SimulationConstants
+from sim.countries import get_country
 from sim.drivers import Driver, DriverGenerator
 from sim.sponsors import Sponsor, SPONSOR_DATA
 from sim.teams import Engine, Team
@@ -134,13 +135,22 @@ def _generate_team_configs(names_dir: str, n: int = 10) -> list[tuple[str, str, 
     """
     Generate n team configs: (name, nationality, color_primary, color_secondary).
     Names are drawn from last name files, one per nationality to spread teams around.
+    Nationalities are weighted by millionaires, interest, and infrastructure (excluding population).
     """
     # All available nationalities
     all_nats = [d for d in os.listdir(names_dir) if os.path.isdir(os.path.join(names_dir, d))]
-    nats = random.sample(all_nats, min(n, len(all_nats)))
-    if len(nats) < n:
-        # If fewer nationalities than teams, allow duplicates
-        nats += random.choices(all_nats, k=n - len(nats))
+    
+    # Calculate weights based on pre-computed team weights (excluding population)
+    weights = []
+    for nat_code in all_nats:
+        country = get_country(nat_code)
+        if country:
+            weights.append(country.team_weight)
+        else:
+            weights.append(1.0)
+    
+    # Weighted selection of nationalities
+    nats = random.choices(all_nats, weights=weights, k=n)
 
     used_names: set[str] = set()
     used_hues: list[float] = []

@@ -89,7 +89,7 @@ def load_world_from_db(db: Session, names_dir: str = "./names"):
             db_id=d.id,
             first_name=d.first_name,
             last_name=d.last_name,
-            nationality=d.nationality,
+            country=d.nationality,
             skill=skill,
             age=age,
         )
