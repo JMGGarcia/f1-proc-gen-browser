@@ -58,7 +58,7 @@ SPONSOR_DATA = [
     ("Shell",               "large",  "#DD1D21", "#FBC817", "NL"),
     ("Aramco",              "large",  "#008A3D", "#F0F0F0", None),   # Saudi
     ("Qatar Airways",       "large",  "#5C0632", "#F0F0F0", None),   # Qatari
-    ("Rolex",               "large",  "#006039", "#C9A84C", None),   # Swiss
+    ("Rolex",               "large",  "#006039", "#C9A84C", "CH"),   # Swiss
     ("Heineken",            "large",  "#1A5C28", "#F0F0F0", "NL"),
     ("Oracle",              "large",  "#C74634", "#F0F0F0", "US"),
     ("AWS",                 "large",  "#232F3E", "#FF9900", "US"),
@@ -85,10 +85,10 @@ SPONSOR_DATA = [
     # ── Medium ───────────────────────────────────────────────────
     ("Santander",           "medium", "#EC0000", "#F0F0F0", "ES"),
     ("Castrol",             "medium", "#006135", "#D40000", "EN"),
-    ("TAG Heuer",           "medium", "#0D0D0D", "#CA0814", None),   # Swiss
+    ("TAG Heuer",           "medium", "#0D0D0D", "#CA0814", "CH"),   # Swiss
     ("Vodafone",            "medium", "#E60000", "#F0F0F0", "EN"),
     ("DHL",                 "medium", "#FFCC00", "#D40511", "GE"),
-    ("UBS",                 "medium", "#E30613", "#1A1A1A", None),   # Swiss
+    ("UBS",                 "medium", "#E30613", "#1A1A1A", "CH"),   # Swiss
     ("Martini",             "medium", "#E31836", "#F0F0F0", "IT"),
     ("Monster Energy",      "medium", "#0D0D0D", "#3DD300", "US"),
     ("Telefonica",          "medium", "#0D3580", "#F0F0F0", "ES"),
@@ -118,8 +118,8 @@ SPONSOR_DATA = [
     ("Esso",                "medium", "#CC0000", "#003087", "US"),
     ("Randstad",            "medium", "#2175D9", "#F0F0F0", "NL"),
     ("Nvidia",              "medium", "#76B900", "#1A1A1A", "US"),
-    ("Acronis",             "medium", "#CF0A2C", "#F0F0F0", None),   # Swiss
-    ("MSC Cruises",         "medium", "#003A70", "#F0F0F0", None),   # Swiss/Italian
+    ("Acronis",             "medium", "#CF0A2C", "#F0F0F0", "CH"),   # Swiss
+    ("MSC Cruises",         "medium", "#003A70", "#F0F0F0", "CH"),   # Swiss/Italian
     ("Crowdstrike",         "medium", "#E3172D", "#F0F0F0", "US"),
     ("BP",                  "medium", "#009A44", "#FFD100", "EN"),
     ("Total",               "medium", "#C8102E", "#F08000", "FR"),
@@ -135,7 +135,7 @@ SPONSOR_DATA = [
     ("Crypto.com",          "small",  "#002D74", "#F0F0F0", None),
     ("Binance",             "small",  "#F3BA2F", "#1A1A1A", None),
     ("Lego",                "small",  "#D01012", "#FFD700", None),   # Danish
-    ("Lenovo",              "small",  "#E2231A", "#F0F0F0", None),   # Chinese
+    ("Lenovo",              "small",  "#E2231A", "#F0F0F0", "CN"),   # Chinese
     ("Moët & Chandon",      "small",  "#C6A84B", "#1A1A1A", "FR"),
     ("Bridgestone",         "small",  "#CC0000", "#1A1A1A", "JP"),
     ("Brembo",              "small",  "#E32119", "#F0F0F0", "IT"),
@@ -149,7 +149,7 @@ SPONSOR_DATA = [
     ("Cognizant",           "small",  "#0033A0", "#F0F0F0", "US"),
     ("Dell",                "small",  "#007DB8", "#F0F0F0", "US"),
     ("Burn",                "small",  "#1A1A1A", "#FF4400", None),
-    ("Credit Suisse",       "small",  "#0C2C7C", "#F0F0F0", None),   # Swiss
+    ("Credit Suisse",       "small",  "#0C2C7C", "#F0F0F0", "CH"),   # Swiss
     ("Pirtek",              "small",  "#E4002B", "#F0F0F0", "AU"),
     ("OMP",                 "small",  "#1A1A1A", "#F0F0F0", "IT"),
     ("Sparco",              "small",  "#E4002B", "#F0F0F0", "IT"),
@@ -174,19 +174,19 @@ SPONSOR_DATA = [
     ("Enkei",               "small",  "#1A1A1A", "#C9A84C", "JP"),
     ("OZ Racing",           "small",  "#CC0000", "#F0F0F0", "IT"),
     ("Sparkling Hill",      "small",  "#4A90D9", "#F0F0F0", None),
-    ("Nespresso",           "small",  "#1A1A1A", "#8B0000", None),   # Swiss
+    ("Nespresso",           "small",  "#1A1A1A", "#8B0000", "CH"),   # Swiss
     ("Lavazza",             "small",  "#003087", "#FFD700", "IT"),
-    ("Julius Baer",         "small",  "#003087", "#C9A84C", None),   # Swiss
+    ("Julius Baer",         "small",  "#003087", "#C9A84C", "CH"),   # Swiss
     ("Banque de France",    "small",  "#003087", "#C9A84C", "FR"),
     ("ANZ",                 "small",  "#007DBA", "#F0F0F0", "AU"),
     ("Chandon",             "small",  "#1A1A1A", "#C9A84C", "FR"),
     ("Oakley",              "small",  "#1A1A1A", "#FF6600", "US"),
     ("Ray-Ban",             "small",  "#1A1A1A", "#C9A84C", "IT"),
     ("Fossil",              "small",  "#8B6914", "#F0F0F0", "US"),
-    ("Tissot",              "small",  "#CC0000", "#F0F0F0", None),   # Swiss
-    ("Hublot",              "small",  "#1A1A1A", "#C9A84C", None),   # Swiss
-    ("IWC",                 "small",  "#1A1A1A", "#C9A84C", None),   # Swiss
-    ("Omega",               "small",  "#003087", "#C9A84C", None),   # Swiss
+    ("Tissot",              "small",  "#CC0000", "#F0F0F0", "CH"),   # Swiss
+    ("Hublot",              "small",  "#1A1A1A", "#C9A84C", "CH"),   # Swiss
+    ("IWC",                 "small",  "#1A1A1A", "#C9A84C", "CH"),   # Swiss
+    ("Omega",               "small",  "#003087", "#C9A84C", "CH"),   # Swiss
     ("Casio",               "small",  "#003087", "#F0F0F0", "JP"),
     ("Seiko",               "small",  "#1A1A1A", "#FFD700", "JP"),
     ("GoPro",               "small",  "#1A1A1A", "#00AEEF", "US"),
@@ -194,8 +194,8 @@ SPONSOR_DATA = [
     ("Canon",               "small",  "#CC0000", "#F0F0F0", "JP"),
     ("Nikon",               "small",  "#FFD700", "#1A1A1A", "JP"),
     ("LG",                  "small",  "#A50034", "#F0F0F0", "KR"),
-    ("Huawei",              "small",  "#CF0A2C", "#F0F0F0", None),   # Chinese
-    ("Xiaomi",              "small",  "#FF6900", "#F0F0F0", None),   # Chinese
+    ("Huawei",              "small",  "#CF0A2C", "#F0F0F0", "CN"),   # Chinese
+    ("Xiaomi",              "small",  "#FF6900", "#F0F0F0", "CN"),   # Chinese
     ("PayPal",              "small",  "#003087", "#009CDE", "US"),
     ("Stripe",              "small",  "#635BFF", "#F0F0F0", "US"),
     ("Coinbase",            "small",  "#0052FF", "#F0F0F0", "US"),

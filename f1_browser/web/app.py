@@ -1,16 +1,28 @@
+import asyncio
 import logging
 import time
+from contextlib import asynccontextmanager
 
 from fastapi import FastAPI
 
 from db.models import Driver, DriverSeasonStats, Season
 from db.session import get_session
-from web.routes import index, seasons, drivers, teams, engines, sponsors, stats, simulate
+from web import broadcaster, sim_state
+from web.routes import index, seasons, drivers, teams, engines, sponsors, stats, simulate, events
 from web.templates_env import templates
 
 logger = logging.getLogger(__name__)
 
-app = FastAPI(title="F1 World")
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    broadcaster.set_loop(asyncio.get_running_loop())
+    sim_state.start_tick_loop()
+    yield
+    sim_state.stop_tick_loop()
+
+
+app = FastAPI(title="F1 World", lifespan=lifespan)
 
 app.include_router(index.router)
 app.include_router(seasons.router)
@@ -20,6 +32,7 @@ app.include_router(engines.router)
 app.include_router(sponsors.router)
 app.include_router(stats.router)
 app.include_router(simulate.router)
+app.include_router(events.router)
 
 _nav_ctx_cache: dict | None = None
 _nav_ctx_timestamp: float = 0.0

@@ -60,10 +60,10 @@
       <td>
         {% if team.current_engine %}{{ engine_badge(team.current_engine) }}{% else %}—{% endif %}
       </td>
-      <td class="num">
+      <td class="num" {% if team.latest_stats %}style="color:{{ stat_color(team.latest_stats.chassis) }}"{% endif %}>
         {% if team.latest_stats %}{{ (team.latest_stats.chassis * 100) | int }}{% else %}—{% endif %}
       </td>
-      <td class="num">
+      <td class="num" {% if team.latest_stats %}style="color:{{ stat_color(team.latest_stats.direction_avg) }}"{% endif %}>
         {% if team.latest_stats %}{{ (team.latest_stats.direction_avg * 100) | int }}{% else %}—{% endif %}
       </td>
       <td class="pts">

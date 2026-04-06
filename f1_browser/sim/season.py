@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import Dict, List, Tuple
+from typing import Dict, Iterator, List, Tuple
 
 from sim.constants import PointsSystem
 from sim.drivers import Driver
@@ -45,6 +45,24 @@ class Season:
         sorted_drivers = sorted(self.classification_driver.items(), key=lambda x: x[1], reverse=True)
         sorted_teams = sorted(self.classification_team.items(), key=lambda x: x[1], reverse=True)
         return race_records, sorted_drivers, sorted_teams
+
+    def iter_races(self, skip_rounds: set | None = None) -> Iterator[tuple]:
+        """Yield (round_num, track, results, driver_snap, team_snap) after each race.
+        driver_snap / team_snap are [(obj, pts), ...] sorted descending by points.
+        skip_rounds: round numbers already in DB (for mid-season resume); those rounds
+        are not simulated and not yielded — classification must be pre-populated."""
+        points = PointsSystem.RACE_POINTS
+        for round_num, track in enumerate(self.tracks, 1):
+            if skip_rounds and round_num in skip_rounds:
+                continue
+            race = Race(track)
+            results = race.perform_race(self.teams)
+            for idx, (driver, perf) in enumerate(results):
+                if perf != -1.0 and idx < len(points):
+                    self._award_points(driver, points[idx])
+            driver_snap = sorted(self.classification_driver.items(), key=lambda x: x[1], reverse=True)
+            team_snap = sorted(self.classification_team.items(), key=lambda x: x[1], reverse=True)
+            yield round_num, track, results, driver_snap, team_snap
 
     def _award_points(self, driver: Driver, pts: int):
         self.classification_driver[driver] = self.classification_driver.get(driver, 0) + pts

@@ -7,6 +7,7 @@ from __future__ import annotations
 import colorsys
 import os
 import random
+import uuid
 from typing import List, Tuple
 
 from db import models as m
@@ -311,5 +312,6 @@ def seed_world(db, names_dir: str = "./names") -> Tuple[
     for team, db_team in zip(teams, all_db_teams):
         team.db_id = db_team.id
 
+    db.add(m.WorldMeta(world_id=str(uuid.uuid4())))
     db.commit()
     return tracks, engines, teams, drivers, driver_gen, sponsors

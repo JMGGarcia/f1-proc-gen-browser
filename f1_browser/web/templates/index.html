@@ -13,7 +13,9 @@
     <div class="value">{{ total_seasons }}</div>
   </div>
   <div>
-    {% if sim_available %}
+    {% if sim_tick_running %}
+      <span class="sim-busy" style="color:#e8314a">● Live</span>
+    {% elif sim_available %}
       {% if sim_busy %}
         <button class="sim-btn" disabled>▶ Simulating…</button>
         <span class="sim-busy">Season in progress</span>
@@ -85,17 +87,149 @@
 </table>
 {% endif %}
 
-<h2>WORLD EVENTS</h2>
-{% if recent_events %}
-<ul class="event-list">
-  {% for event in recent_events %}
-  <li class="event-item {{ event.event_type }}">
-    <div class="event-season">Season {{ event.season_number }}</div>
-    {{ event.description }}
-  </li>
-  {% endfor %}
-</ul>
-{% else %}
-<p>No events yet. Start a simulation to populate the world.</p>
-{% endif %}
+<h2>LIVE FEED</h2>
+<div id="live-status" style="color:var(--muted);font-size:12px;margin-bottom:6px">Connecting…</div>
+
+<div id="season-progress-wrap" style="display:none;margin-bottom:12px">
+  <div style="font-size:11px;color:var(--muted);margin-bottom:4px">
+    <span id="season-progress-label"></span>
+  </div>
+  <div style="background:var(--border);border-radius:3px;height:6px;overflow:hidden">
+    <div id="season-progress-fill" style="height:100%;background:var(--accent);width:0%;transition:width 0.4s ease"></div>
+  </div>
+</div>
+
+<div id="live-race" style="display:none;margin-bottom:16px">
+  <h3 id="live-race-title" style="font-size:13px;margin-bottom:6px"></h3>
+  <table class="data-table">
+    <thead><tr><th>Pos</th><th>Driver</th><th>Team</th><th>Engine</th><th>Sponsor</th><th>Pts</th></tr></thead>
+    <tbody id="live-race-body"></tbody>
+  </table>
+</div>
+
+<div style="display:flex;gap:24px;flex-wrap:wrap;margin-bottom:16px">
+  <div id="live-driver-standings" style="display:none;flex:1;min-width:220px">
+    <h3 id="live-driver-title" style="font-size:13px;margin-bottom:6px">Driver Championship</h3>
+    <table class="data-table">
+      <thead><tr><th>Pos</th><th>Driver</th><th>Team</th><th>Pts</th></tr></thead>
+      <tbody id="live-driver-body"></tbody>
+    </table>
+  </div>
+  <div id="live-team-standings" style="display:none;flex:1;min-width:220px">
+    <h3 id="live-team-title" style="font-size:13px;margin-bottom:6px">Team Championship</h3>
+    <table class="data-table">
+      <thead><tr><th>Pos</th><th>Team</th><th>Pts</th></tr></thead>
+      <tbody id="live-team-body"></tbody>
+    </table>
+  </div>
+</div>
+
+<div id="live-events" style="margin-bottom:16px"></div>
+
+<script>
+(function () {
+  function statColor(v) {
+    var h = Math.round(Math.max(0, Math.min(1, v)) * 120);
+    return "hsl(" + h + ",70%,55%)";
+  }
+
+  function renderStandings(msg) {
+    if (msg.driver_standings && msg.driver_standings.length) {
+      document.getElementById("live-driver-standings").style.display = "";
+      document.getElementById("live-driver-body").innerHTML =
+        msg.driver_standings.map(function(d) {
+          return "<tr><td>" + d.pos + "</td><td>" + d.driver_name + "</td>" +
+            "<td><span class=\"team-badge\" style=\"background:" + d.team_color_primary + ";color:" + d.team_color_secondary + "\">" + d.team_name + "</span></td>" +
+            "<td>" + d.points + "</td></tr>";
+        }).join("");
+    }
+    if (msg.team_standings && msg.team_standings.length) {
+      document.getElementById("live-team-standings").style.display = "";
+      document.getElementById("live-team-body").innerHTML =
+        msg.team_standings.map(function(t) {
+          return "<tr><td>" + t.pos + "</td>" +
+            "<td><span class=\"team-badge\" style=\"background:" + t.color_primary + ";color:" + t.color_secondary + "\">" + t.team_name + "</span></td>" +
+            "<td>" + t.points + "</td></tr>";
+        }).join("");
+    }
+  }
+
+  var es = new EventSource("/live-feed");
+  var status = document.getElementById("live-status");
+
+  es.onopen = function() { status.textContent = "● Live — receiving updates"; };
+  es.onerror = function() { status.textContent = "Reconnecting…"; };
+
+  es.onmessage = function(e) {
+    var msg = JSON.parse(e.data);
+
+    if (msg.type === "race_result" || msg.type === "snapshot") {
+      // Progress bar
+      if (msg.round && msg.total_rounds) {
+        var pct = Math.round(msg.round / msg.total_rounds * 100);
+        document.getElementById("season-progress-wrap").style.display = "";
+        document.getElementById("season-progress-label").textContent =
+          "Season " + msg.season + " — Round " + msg.round + " / " + msg.total_rounds;
+        document.getElementById("season-progress-fill").style.width = pct + "%";
+      }
+
+      // Race result table
+      if (msg.results) {
+        document.getElementById("live-race").style.display = "";
+        document.getElementById("live-race-title").textContent =
+          "Round " + msg.round + ": " + msg.track.name;
+        document.getElementById("live-race-body").innerHTML =
+          msg.results.map(function(r) {
+            return "<tr>" +
+              "<td>" + (r.dnf ? "DNF" : r.pos) + "</td>" +
+              "<td>" + r.driver_name + "</td>" +
+              "<td><span class=\"team-badge\" style=\"background:" + r.team_color_primary + ";color:" + r.team_color_secondary + "\">" + r.team_name + "</span></td>" +
+              "<td>" + (r.engine_name ? "<span class=\"engine-badge\" style=\"background:" + r.engine_color_primary + ";color:" + r.engine_color_secondary + "\">" + r.engine_name + "</span>" : "—") + "</td>" +
+              "<td>" + (r.sponsor_name ? "<span class=\"sponsor-badge\" style=\"background:" + r.sponsor_color_primary + ";color:" + r.sponsor_color_secondary + "\">" + r.sponsor_name + "</span>" : "—") + "</td>" +
+              "<td>" + r.points + "</td>" +
+              "</tr>";
+          }).join("");
+      }
+
+      // Driver/team title shows "in progress" heading
+      document.getElementById("live-driver-title").textContent = "Driver Championship";
+      document.getElementById("live-team-title").textContent = "Team Championship";
+      renderStandings(msg);
+    }
+
+    if (msg.type === "season_standings") {
+      // Hide the race table, fill progress bar to 100%, show final standings
+      document.getElementById("live-race").style.display = "none";
+      document.getElementById("season-progress-fill").style.width = "100%";
+      document.getElementById("season-progress-label").textContent =
+        "Season " + msg.season + " — Final";
+
+      document.getElementById("live-driver-title").textContent =
+        "Season " + msg.season + " — Driver Champion: " + msg.driver_champion.driver_name + " (" + msg.driver_champion.points + " pts)";
+      document.getElementById("live-team-title").textContent =
+        "Season " + msg.season + " — Teams: " + msg.team_champion.team_name + " (" + msg.team_champion.points + " pts)";
+
+      document.getElementById("live-driver-standings").style.display = "";
+      document.getElementById("live-team-standings").style.display = "";
+      renderStandings(msg);
+    }
+
+    if (msg.type === "season_events") {
+      var div = document.getElementById("live-events");
+      var header = document.createElement("div");
+      header.className = "event-item";
+      header.style.borderColor = "var(--accent)";
+      header.innerHTML = "<div class=\"event-season\">Season " + msg.season + "</div><strong>Season complete — off-season updates</strong>";
+      div.prepend(header);
+      (msg.world_events || []).slice().reverse().forEach(function(ev) {
+        var li = document.createElement("div");
+        li.className = "event-item " + ev.event_type;
+        li.innerHTML = "<div class=\"event-season\">Season " + msg.season + "</div>" + ev.description;
+        div.prepend(li);
+      });
+    }
+  };
+}());
+</script>
+
 {% endblock %}

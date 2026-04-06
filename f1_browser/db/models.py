@@ -182,6 +182,14 @@ class EngineSeasonStats(Base):
     season = relationship("Season")
 
 
+class WorldMeta(Base):
+    __tablename__ = "world_meta"
+
+    id = Column(Integer, primary_key=True)
+    world_id = Column(String, nullable=False)
+    created_at = Column(DateTime, default=datetime.utcnow)
+
+
 class WorldEvent(Base):
     __tablename__ = "world_events"
 

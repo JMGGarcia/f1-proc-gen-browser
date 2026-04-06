@@ -26,6 +26,18 @@
     <div class="label">Podiums</div>
     <div class="value">{{ total_podiums }}</div>
   </div>
+  {% if driver.age %}
+  <div class="stat-card">
+    <div class="label">Age</div>
+    <div class="value">{{ driver.age }}</div>
+  </div>
+  {% endif %}
+  {% if driver.skill %}
+  <div class="stat-card" title="Current skill (0–100)">
+    <div class="label">Skill</div>
+    <div class="value" style="color:{{ stat_color(driver.skill) }}">{{ (driver.skill * 100) | int }}</div>
+  </div>
+  {% endif %}
   {% if career %}
   <div class="stat-card">
     <div class="label">Seasons</div>
@@ -33,21 +45,21 @@
   </div>
   <div class="stat-card">
     <div class="label">Peak Skill</div>
-    <div class="value">{{ (career | map(attribute='top_skill') | max * 100) | int }}</div>
+    <div class="value" style="color:{{ stat_color(career | map(attribute='top_skill') | max) }}">{{ (career | map(attribute='top_skill') | max * 100) | int }}</div>
   </div>
   {% endif %}
   {% if driver.loyalty is not none %}
   <div class="stat-card" title="How much the driver values staying at the same team">
     <div class="label">Loyalty</div>
-    <div class="value">{{ (driver.loyalty * 100) | int }}</div>
+    <div class="value" style="color:{{ stat_color(driver.loyalty) }}">{{ (driver.loyalty * 100) | int }}</div>
   </div>
   <div class="stat-card" title="How much the driver values team finances">
     <div class="label">Greed</div>
-    <div class="value">{{ (driver.greed * 100) | int }}</div>
+    <div class="value" style="color:{{ stat_color(driver.greed) }}">{{ (driver.greed * 100) | int }}</div>
   </div>
   <div class="stat-card" title="How much the driver values car quality">
     <div class="label">Ambition</div>
-    <div class="value">{{ (driver.ambition * 100) | int }}</div>
+    <div class="value" style="color:{{ stat_color(driver.ambition) }}">{{ (driver.ambition * 100) | int }}</div>
   </div>
   {% endif %}
 </div>
@@ -77,7 +89,7 @@
         {% if entry.engine_obj %}{{ engine_badge(entry.engine_obj) }}{% else %}—{% endif %}
       </td>
       <td class="num">{{ entry.age }}</td>
-      <td class="num">{{ (entry.skill * 100) | int }}</td>
+      <td class="num" style="color:{{ stat_color(entry.skill) }}">{{ (entry.skill * 100) | int }}</td>
       <td class="pos">{{ entry.championship_position if entry.championship_position else '—' }}</td>
       <td class="pts">{{ entry.total_points }}</td>
     </tr>

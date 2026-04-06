@@ -5,6 +5,7 @@ import random
 from typing import List, Optional, Tuple
 
 from db import models as m
+from db.backup import cleanup_backups, get_world_id8, make_backup
 from sim.constants import DriverConstants, PointsSystem, SimulationConstants, TeamConstants
 from sim.drivers import Driver, DriverGenerator
 from sim.season import Season
@@ -71,6 +72,304 @@ class WorldRunner:
         self.n_seasons = n_seasons
         self.sponsors: List[Sponsor] = sponsors or []
 
+        # Tick-loop state (race-by-race live feed)
+        self._tick_season: Optional[Season] = None
+        self._tick_season_num: int = 0
+        self._tick_season_id: int = 0
+        self._tick_race_iter = None
+        self._tick_race_records: list = []
+        self._tick_total_rounds: int = len(tracks)
+
+    # ------------------------------------------------------------------ #
+    # Tick-based live feed                                                 #
+    # ------------------------------------------------------------------ #
+
+    def tick_one_race(self, db) -> list[dict]:
+        """Run one race. Returns a list of JSON-serialisable SSE payload dicts
+        (usually 1 item; 2 items at season end: standings then events)."""
+        if self._tick_race_iter is None:
+            self._tick_start_season(db)
+
+        try:
+            round_num, track, results, driver_snap, team_snap = next(self._tick_race_iter)
+            self._tick_race_records.append((track, results))
+            self._write_one_race(db, self._tick_season_id, round_num, track, results)
+            db.commit()
+            return [{
+                "type": "race_result",
+                "season": self._tick_season_num,
+                "round": round_num,
+                "total_rounds": self._tick_total_rounds,
+                "track": {"id": track.db_id, "name": track.name},
+                "results": self._serialise_results(results),
+                "driver_standings": self._serialise_driver_snap(driver_snap),
+                "team_standings": self._serialise_team_snap(team_snap),
+            }]
+        except StopIteration:
+            return self._tick_finish_season(db)
+
+    def _tick_start_season(self, db) -> None:
+        in_progress = (
+            db.query(m.Season)
+            .filter_by(completed=False)
+            .order_by(m.Season.number.desc())
+            .first()
+        )
+        if in_progress:
+            self._tick_resume_season(db, in_progress)
+            return
+
+        latest = db.query(m.Season).order_by(m.Season.number.desc()).first()
+        self._tick_season_num = (latest.number + 1) if latest else 1
+        db_season = m.Season(number=self._tick_season_num, completed=False)
+        db.add(db_season)
+        db.flush()
+        self._tick_season_id = db_season.id
+        self._tick_season = Season(self.tracks, self.teams, self._tick_season_num)
+        self._tick_race_records = []
+        self._tick_race_iter = self._tick_season.iter_races()
+        print(f"  [tick] Starting season {self._tick_season_num}…", flush=True)
+
+    def _tick_resume_season(self, db, in_progress: "m.Season") -> None:
+        self._tick_season_num = in_progress.number
+        self._tick_season_id = in_progress.id
+
+        driver_map = {d.db_id: d for d in self.drivers}
+        team_map = {t.db_id: t for t in self.teams}
+        track_map = {t.db_id: t for t in self.tracks}
+
+        done_races = (
+            db.query(m.Race)
+            .filter_by(season_id=in_progress.id)
+            .order_by(m.Race.round_number)
+            .all()
+        )
+        done_round_nums = {r.round_number for r in done_races}
+
+        # Rebuild driver-team assignments from this season's race results.
+        # The loader reconstructs Season N lineups from DriverSeasonStats, but
+        # Season N+1 may have different signings. We derive the correct lineup
+        # directly from the DB results so team.drivers and driver.team are right
+        # both for the classification display and for the remaining races.
+        if done_races:
+            season_driver_team: dict[int, int] = {}  # driver_id → team_id
+            for db_race in done_races:
+                for result in db.query(m.RaceResult).filter_by(race_id=db_race.id).all():
+                    if result.driver_id not in season_driver_team:
+                        season_driver_team[result.driver_id] = result.team_id
+
+            # Reset all slots, then re-assign from race data
+            for team in self.teams:
+                team.drivers = [None, None]
+            for driver in self.drivers:
+                driver.team = None
+
+            for driver_id, team_id in season_driver_team.items():
+                driver = driver_map.get(driver_id)
+                team = team_map.get(team_id)
+                if driver is None or team is None:
+                    continue
+                driver.team = team
+                if team.drivers[0] is None:
+                    team.drivers[0] = driver
+                elif team.drivers[1] is None:
+                    team.drivers[1] = driver
+
+        # Create Season with the now-correct driver assignments
+        self._tick_season = Season(self.tracks, self.teams, self._tick_season_num)
+        self._tick_race_records = []
+
+        points_table = PointsSystem.RACE_POINTS
+        for db_race in done_races:
+            race_results = (
+                db.query(m.RaceResult)
+                .filter_by(race_id=db_race.id)
+                .order_by(m.RaceResult.position)
+                .all()
+            )
+            winner_driver = None
+            for result in race_results:
+                if result.dnf or result.position == 0:
+                    continue
+                idx = result.position - 1
+                if idx >= len(points_table):
+                    continue
+                driver = driver_map.get(result.driver_id)
+                if driver is None:
+                    continue
+                pts = points_table[idx]
+                self._tick_season.classification_driver[driver] = (
+                    self._tick_season.classification_driver.get(driver, 0) + pts
+                )
+                if driver.team is not None:
+                    self._tick_season.classification_team[driver.team] = (
+                        self._tick_season.classification_team.get(driver.team, 0) + pts
+                    )
+                if idx == 0:
+                    winner_driver = driver
+
+            # Minimal stub entry: only winner is needed by _write_season_stats
+            fake_results = [(winner_driver, 1.0)] if winner_driver else []
+            track = track_map.get(db_race.track_id)
+            if track:
+                self._tick_race_records.append((track, fake_results))
+
+        n_done = len(done_round_nums)
+        n_total = len(self.tracks)
+        print(
+            f"  [tick] Resuming season {self._tick_season_num} "
+            f"({n_done}/{n_total} races done)…",
+            flush=True,
+        )
+        self._tick_race_iter = self._tick_season.iter_races(skip_rounds=done_round_nums)
+
+    def _tick_finish_season(self, db) -> dict:
+        season_num = self._tick_season_num
+        season_id = self._tick_season_id
+        race_records = self._tick_race_records
+        season = self._tick_season
+
+        sorted_drivers = sorted(season.classification_driver.items(), key=lambda x: x[1], reverse=True)
+        sorted_teams = sorted(season.classification_team.items(), key=lambda x: x[1], reverse=True)
+
+        self._write_season_stats(db, season_id, race_records, sorted_drivers, sorted_teams)
+        db.query(m.Season).filter_by(id=season_id).update({"completed": True})
+        db.flush()
+
+        # Serialise standings NOW, before off-season mutations change driver.team / team names
+        serialised_driver_standings = self._serialise_driver_snap(sorted_drivers)
+        serialised_team_standings = self._serialise_team_snap(sorted_teams)
+        driver_champion_name = f"{sorted_drivers[0][0].first_name} {sorted_drivers[0][0].last_name}"
+        driver_champion_pts = sorted_drivers[0][1]
+        team_champion_name = sorted_teams[0][0].name
+        team_champion_pts = sorted_teams[0][1]
+
+        winning_driver = sorted_drivers[0][0]
+        winning_team = sorted_teams[0][0]
+
+        self._update_directions(db, season_num, sorted_teams)
+        sorted_teams = self._check_team_sales(db, season_num, sorted_teams)
+        self._age_drivers(db, season_num)
+        self._tweak_chassis_engine(db, season_num, season_id)
+        self._teams_pick_engines(db, season_num, sorted_teams, winning_driver, winning_team)
+        self._teams_pick_sponsors(db, season_num, sorted_teams)
+        self._teams_pick_drivers(db, season_num, sorted_teams, winning_driver, winning_team)
+        self._tweak_driver_form()
+        db.commit()
+        make_backup(season_num, db)
+        cleanup_backups(get_world_id8(db))
+
+        world_events = (
+            db.query(m.WorldEvent)
+            .filter_by(season_number=season_num)
+            .order_by(m.WorldEvent.id)
+            .all()
+        )
+
+        # Reset tick state
+        self._tick_race_iter = None
+        self._tick_race_records = []
+        self._tick_season = None
+
+        print(f"  [tick] Season {season_num} complete.", flush=True)
+        return [
+            {
+                "type": "season_standings",
+                "season": season_num,
+                "driver_champion": {
+                    "driver_name": driver_champion_name,
+                    "points": driver_champion_pts,
+                },
+                "team_champion": {
+                    "team_name": team_champion_name,
+                    "points": team_champion_pts,
+                },
+                "driver_standings": serialised_driver_standings,
+                "team_standings": serialised_team_standings,
+            },
+            {
+                "type": "season_events",
+                "season": season_num,
+                "world_events": [
+                    {"event_type": e.event_type, "description": e.description}
+                    for e in world_events
+                ],
+            },
+        ]
+
+    def _write_one_race(self, db, season_id: int, round_num: int, track, results) -> None:
+        points_table = PointsSystem.RACE_POINTS
+        db_race = m.Race(season_id=season_id, track_id=track.db_id, round_number=round_num)
+        db.add(db_race)
+        db.flush()
+        for idx, (driver, perf) in enumerate(results):
+            dnf = perf == -1.0
+            position = 0 if dnf else idx + 1
+            pts = 0 if dnf or idx >= len(points_table) else points_table[idx]
+            db.add(m.RaceResult(
+                race_id=db_race.id,
+                driver_id=driver.db_id,
+                team_id=driver.team.db_id,
+                engine_id=driver.team.engine.db_id,
+                position=position,
+                points=pts,
+                dnf=dnf,
+            ))
+
+    @staticmethod
+    def _serialise_results(results) -> list:
+        points_table = PointsSystem.RACE_POINTS
+        out = []
+        for idx, (driver, perf) in enumerate(results):
+            dnf = perf == -1.0
+            pts = 0 if dnf or idx >= len(points_table) else points_table[idx]
+            team = driver.team
+            engine = team.engine if team else None
+            sponsor = team.sponsor if team else None
+            out.append({
+                "pos": 0 if dnf else idx + 1,
+                "driver_name": f"{driver.first_name} {driver.last_name}",
+                "team_name": team.name if team else "",
+                "team_color_primary": team.color_primary if team else "#333",
+                "team_color_secondary": team.color_secondary if team else "#fff",
+                "engine_name": engine.name if engine else "",
+                "engine_color_primary": engine.color_primary if engine else "#333",
+                "engine_color_secondary": engine.color_secondary if engine else "#fff",
+                "sponsor_name": sponsor.name if sponsor else "",
+                "sponsor_color_primary": sponsor.color_primary if sponsor else "#333",
+                "sponsor_color_secondary": sponsor.color_secondary if sponsor else "#fff",
+                "points": pts,
+                "dnf": dnf,
+            })
+        return out
+
+    @staticmethod
+    def _serialise_driver_snap(snap) -> list:
+        return [
+            {
+                "pos": pos,
+                "driver_name": f"{driver.first_name} {driver.last_name}",
+                "team_name": driver.team.name if driver.team else "",
+                "team_color_primary": driver.team.color_primary if driver.team else "#333",
+                "team_color_secondary": driver.team.color_secondary if driver.team else "#fff",
+                "points": pts,
+            }
+            for pos, (driver, pts) in enumerate(snap[:20], 1)
+        ]
+
+    @staticmethod
+    def _serialise_team_snap(snap) -> list:
+        return [
+            {
+                "pos": pos,
+                "team_name": team.name,
+                "color_primary": team.color_primary,
+                "color_secondary": team.color_secondary,
+                "points": pts,
+            }
+            for pos, (team, pts) in enumerate(snap[:20], 1)
+        ]
+
     def run(self, db):
         for n in range(self.n_seasons):
             self.run_one_season(db, n + 1)
@@ -103,6 +402,8 @@ class WorldRunner:
         self._teams_pick_drivers(db, season_num, sorted_teams, winning_driver, winning_team)
         self._tweak_driver_form()
         db.commit()
+        make_backup(season_num, db)
+        cleanup_backups(get_world_id8(db))
 
     # ------------------------------------------------------------------ #
     # DB writers                                                           #
@@ -470,6 +771,7 @@ class WorldRunner:
         prev_team_champ = winning_team
         self._match_drivers_to_teams(db, season_num, sorted_teams, prev_drv_champ_team, prev_team_champ)
 
+
     def _teams_pick_engines(self, db, season_num: int, sorted_teams, winning_driver: Driver, winning_team: Team):
         winning_driver_engine = winning_driver.team.engine if winning_driver.team else None
         winning_team_engine = winning_team.engine
@@ -797,17 +1099,23 @@ class WorldRunner:
                     if d is None and i not in already_filling
                 ]
 
+                # Prevent offering the same driver to multiple seats in one round,
+                # which would cause the algorithm to oscillate without converging.
+                offered_this_round: set[int] = set()
                 for seat_idx in open_seat_idxs:
                     for candidate in prefs:
                         if id(candidate) in rejected:
                             continue
                         if candidate.team is not None:
                             continue  # already placed
+                        if id(candidate) in offered_this_round:
+                            continue  # already offered to this driver for another seat
                         # Make offer
                         finance = finance_by_team[id(team)]
                         prev_team = prev_team_by_driver.get(id(candidate))
                         utility = self._compute_driver_utility(candidate, team, finance, prev_team)
                         offers.setdefault(id(candidate), []).append((utility, team, seat_idx))
+                        offered_this_round.add(id(candidate))
                         break
 
             if not offers:

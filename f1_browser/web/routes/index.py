@@ -1,9 +1,13 @@
+import asyncio
+import json
+
 from fastapi import APIRouter, Depends, Request
+from fastapi.responses import StreamingResponse
 from sqlalchemy.orm import Session
 
-from db.models import Driver, DriverSeasonStats, Engine, Season, Sponsor, Team, TeamSeasonStats, WorldEvent
-from db.session import get_db_session
-from web import sim_state
+from db.models import Driver, DriverSeasonStats, Engine, Race, RaceResult, Season, Sponsor, Team, TeamSeasonStats, WorldEvent
+from db.session import get_db_session, get_session
+from web import broadcaster, sim_state
 from web.templates_env import templates
 
 router = APIRouter()
@@ -11,12 +15,6 @@ router = APIRouter()
 
 @router.get("/")
 def index(request: Request, db: Session = Depends(get_db_session)):
-    recent_events = (
-        db.query(WorldEvent)
-        .order_by(WorldEvent.id.desc())
-        .limit(40)
-        .all()
-    )
     recent_seasons = (
         db.query(Season)
         .filter_by(completed=True)
@@ -84,9 +82,149 @@ def index(request: Request, db: Session = Depends(get_db_session)):
         })
 
     return templates.TemplateResponse(request, "index.html", {
-        "recent_events": recent_events,
         "summaries": summaries,
         "total_seasons": total_seasons,
         "sim_available": sim_state.is_available(),
         "sim_busy": sim_state.is_busy(),
+        "sim_tick_running": sim_state.is_tick_running(),
     })
+
+
+@router.get("/live-feed")
+async def live_feed(request: Request):
+    async def event_stream():
+        q = broadcaster.subscribe()
+        try:
+            snap = _build_snapshot()
+            yield f"data: {json.dumps(snap)}\n\n"
+            while True:
+                if await request.is_disconnected():
+                    break
+                try:
+                    data = await asyncio.wait_for(q.get(), timeout=15.0)
+                    yield f"data: {data}\n\n"
+                except asyncio.TimeoutError:
+                    yield ": heartbeat\n\n"
+        finally:
+            broadcaster.unsubscribe(q)
+
+    return StreamingResponse(
+        event_stream(),
+        media_type="text/event-stream",
+        headers={"Cache-Control": "no-cache", "X-Accel-Buffering": "no"},
+    )
+
+
+def _build_snapshot() -> dict:
+    """Return current standings for a freshly-connected SSE client."""
+    with get_session() as db:
+        season = db.query(Season).order_by(Season.number.desc()).first()
+        if season is None:
+            return {"type": "snapshot", "season": None, "driver_standings": [], "team_standings": []}
+
+        season_id = season.id
+        season_num = season.number
+
+        # Latest completed round in this season
+        latest_race = (
+            db.query(Race)
+            .filter_by(season_id=season_id)
+            .order_by(Race.round_number.desc())
+            .first()
+        )
+        round_completed = latest_race.round_number if latest_race else 0
+
+        # Use DriverSeasonStats if season is complete, else aggregate from race results
+        if season.completed:
+            driver_stats = (
+                db.query(DriverSeasonStats)
+                .filter_by(season_id=season_id)
+                .order_by(DriverSeasonStats.championship_position)
+                .limit(20)
+                .all()
+            )
+            driver_ids = [s.driver_id for s in driver_stats]
+            team_ids = [s.team_id for s in driver_stats if s.team_id]
+            drivers_map = {d.id: d for d in db.query(Driver).filter(Driver.id.in_(driver_ids)).all()}
+            teams_map = {t.id: t for t in db.query(Team).filter(Team.id.in_(team_ids)).all()}
+            driver_standings = [
+                {
+                    "pos": s.championship_position,
+                    "driver_name": f"{drivers_map[s.driver_id].first_name} {drivers_map[s.driver_id].last_name}"
+                    if s.driver_id in drivers_map else "—",
+                    "team_name": teams_map[s.team_id].name if s.team_id and s.team_id in teams_map else "—",
+                    "points": s.total_points,
+                }
+                for s in driver_stats
+            ]
+            team_stats = (
+                db.query(TeamSeasonStats)
+                .filter_by(season_id=season_id)
+                .order_by(TeamSeasonStats.championship_position)
+                .limit(20)
+                .all()
+            )
+            team_ids2 = [s.team_id for s in team_stats]
+            teams_map2 = {t.id: t for t in db.query(Team).filter(Team.id.in_(team_ids2)).all()}
+            team_standings = [
+                {
+                    "pos": s.championship_position,
+                    "team_name": teams_map2[s.team_id].name if s.team_id in teams_map2 else "—",
+                    "color_primary": teams_map2[s.team_id].color_primary if s.team_id in teams_map2 else "#333",
+                    "color_secondary": teams_map2[s.team_id].color_secondary if s.team_id in teams_map2 else "#fff",
+                    "points": s.total_points,
+                }
+                for s in team_stats
+            ]
+        else:
+            # In-progress season: aggregate from race results
+            from sqlalchemy import func
+            driver_pts = (
+                db.query(
+                    Driver.id,
+                    Driver.first_name,
+                    Driver.last_name,
+                    Team.name.label("team_name"),
+                    func.sum(RaceResult.points).label("pts"),
+                )
+                .join(RaceResult, RaceResult.driver_id == Driver.id)
+                .join(Race, Race.id == RaceResult.race_id)
+                .join(Team, Team.id == RaceResult.team_id)
+                .filter(Race.season_id == season_id)
+                .group_by(Driver.id, Team.id)
+                .order_by(func.sum(RaceResult.points).desc())
+                .limit(20)
+                .all()
+            )
+            driver_standings = [
+                {"pos": i + 1, "driver_name": f"{r.first_name} {r.last_name}", "team_name": r.team_name, "points": r.pts or 0}
+                for i, r in enumerate(driver_pts)
+            ]
+            team_pts = (
+                db.query(
+                    Team.id,
+                    Team.name,
+                    Team.color_primary,
+                    Team.color_secondary,
+                    func.sum(RaceResult.points).label("pts"),
+                )
+                .join(RaceResult, RaceResult.team_id == Team.id)
+                .join(Race, Race.id == RaceResult.race_id)
+                .filter(Race.season_id == season_id)
+                .group_by(Team.id)
+                .order_by(func.sum(RaceResult.points).desc())
+                .limit(20)
+                .all()
+            )
+            team_standings = [
+                {"pos": i + 1, "team_name": r.name, "color_primary": r.color_primary, "color_secondary": r.color_secondary, "points": r.pts or 0}
+                for i, r in enumerate(team_pts)
+            ]
+
+        return {
+            "type": "snapshot",
+            "season": season_num,
+            "round_completed": round_completed,
+            "driver_standings": driver_standings,
+            "team_standings": team_standings,
+        }

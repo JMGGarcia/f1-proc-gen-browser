@@ -75,16 +75,12 @@ def load_world_from_db(db: Session, names_dir: str = "./names"):
     drivers: list[Driver] = []
     driver_map: dict[int, Driver] = {}
     for d in db_drivers:
-        # Get latest season stats for skill/age
-        stats = (
-            db.query(m.DriverSeasonStats)
-            .filter_by(driver_id=d.id)
-            .order_by(m.DriverSeasonStats.season_id.desc())
-            .first()
-        )
-        skill = stats.skill if stats else 0.3
-        age = stats.age if stats else 25
-        top_skill = stats.top_skill if stats else skill
+        # Use Driver-row values — _age_drivers() keeps these current every season,
+        # including for free agents who haven't raced in many seasons.
+        # DriverSeasonStats would give stale values for long-term free agents.
+        skill = d.skill if d.skill is not None else 0.3
+        age = d.age if d.age is not None else 25
+        top_skill = d.top_skill if d.top_skill is not None else skill
 
         drv = Driver(
             db_id=d.id,

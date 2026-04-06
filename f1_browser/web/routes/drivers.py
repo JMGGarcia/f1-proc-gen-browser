@@ -49,8 +49,12 @@ def drivers_list(request: Request, db: Session = Depends(get_db_session)):
         ) if (last_stats or d.skill) else "—"
         d.flag = NATIONALITY_FLAGS.get(d.nationality, "")
 
+    drivers_with_team = [d for d in drivers if d.current_team]
+    drivers_without_team = [d for d in drivers if not d.current_team]
+
     return templates.TemplateResponse(request, "drivers_list.html", {
-        "active_drivers": drivers,
+        "drivers_with_team": drivers_with_team,
+        "drivers_without_team": drivers_without_team,
     })
 
 

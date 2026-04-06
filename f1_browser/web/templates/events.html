@@ -1,0 +1,31 @@
+{% extends "base.html" %}
+{% block title %}World Events — F1 World{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <h1>WORLD EVENTS</h1>
+  <div class="subtitle">Transfers, retirements, sales, and revolutions</div>
+</div>
+
+{% if events %}
+<ul class="event-list">
+  {% for event in events %}
+  <li class="event-item {{ event.event_type }}">
+    <div class="event-season">Season {{ event.season_number }}</div>
+    {{ event.description }}
+  </li>
+  {% endfor %}
+</ul>
+
+{% if total_pages > 1 %}
+<div class="page-nav">
+  {% if page > 1 %}<a href="/events?page={{ page - 1 }}">← Newer</a>{% endif %}
+  <span style="color:var(--muted)">Page {{ page }} / {{ total_pages }}</span>
+  {% if page < total_pages %}<a href="/events?page={{ page + 1 }}">Older →</a>{% endif %}
+</div>
+{% endif %}
+
+{% else %}
+<p>No events yet.</p>
+{% endif %}
+{% endblock %}

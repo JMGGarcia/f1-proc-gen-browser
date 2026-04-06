@@ -48,6 +48,8 @@ def engines_list(request: Request, db: Session = Depends(get_db_session)):
         latest = latest_ess_by_engine.get(engine.id)
         engine.latest_power = int(latest.power * 100) if latest else None
         engine.latest_reliability = int(latest.reliability * 100) if latest else None
+        engine.latest_power_raw = latest.power if latest else None
+        engine.latest_reliability_raw = latest.reliability if latest else None
 
     return templates.TemplateResponse(request, "engines_list.html", {
         "engines": engines,
