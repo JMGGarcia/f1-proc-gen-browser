@@ -41,7 +41,7 @@ class SimulationConstants:
     YEARLY_CHANGE = 0.1
     HISTORY_YEARS = 5
     RACE_RANDOMNESS = 0.025
-    FORM_CHANGE = 0.1
+    FORM_CHANGE = 0.05
     MAX_TEAMS_PER_ENGINE = 3
     DRIVERS_POOL = 80
     GEN_MIN_AGE = 18

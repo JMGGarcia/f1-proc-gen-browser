@@ -771,6 +771,37 @@ class WorldRunner:
         prev_team_champ = winning_team
         self._match_drivers_to_teams(db, season_num, sorted_teams, prev_drv_champ_team, prev_team_champ)
 
+        # VALIDATION: Ensure consistency after matching
+        team_driver_set = set()
+        for team in self.teams:
+            for i, driver in enumerate(team.drivers):
+                if driver is not None:
+                    team_driver_set.add(id(driver))
+                    if driver.team is not team:
+                        print(
+                            f"  [ERROR] Season {season_num}: {driver.name} in {team.name}.drivers[{i}] "
+                            f"but driver.team = {driver.team.name if driver.team else None}",
+                            flush=True,
+                        )
+
+        for driver in self.drivers:
+            if id(driver) not in team_driver_set:
+                # Driver should not be assigned to any team
+                if driver.team is not None:
+                    print(
+                        f"  [ERROR] Season {season_num}: {driver.name} is FREE but driver.team = {driver.team.name}",
+                        flush=True,
+                    )
+                    driver.team = None  # Force clear it
+
+        drivers_in_teams = sum(1 for team in self.teams for driver in team.drivers if driver is not None)
+        total_teams = len(self.teams)
+        print(
+            f"  [teams_pick_drivers] Season {season_num}: {drivers_in_teams} drivers in {total_teams} teams "
+            f"({drivers_in_teams / 2 / total_teams * 100:.0f}% fill rate)",
+            flush=True,
+        )
+
 
     def _teams_pick_engines(self, db, season_num: int, sorted_teams, winning_driver: Driver, winning_team: Team):
         winning_driver_engine = winning_driver.team.engine if winning_driver.team else None
@@ -1154,6 +1185,31 @@ class WorldRunner:
                     )
                     if has_candidates:
                         teams_with_seats.append(team)
+
+        # FALLBACK: Greedy matching for any remaining unfilled seats
+        # This handles cases where the two-sided matching exhausted all preferences
+        remaining_seats: dict[int, list] = {}  # team id -> list of (seat_idx, team_obj)
+        for team, _ in sorted_teams:
+            tentatively_filled = {
+                seat for d_id, (t, seat) in tentative.items() if t is team
+            }
+            for i, d in enumerate(team.drivers):
+                if d is None and i not in tentatively_filled:
+                    remaining_seats.setdefault(id(team), []).append((i, team))
+
+        free_drivers = [d for d in self.drivers if d.team is None and id(d) not in tentative]
+        
+        if remaining_seats and free_drivers:
+            # Sort by team preference (best teams pick first)
+            for team, _ in sorted_teams:
+                if id(team) not in remaining_seats:
+                    continue
+                for seat_idx, _ in remaining_seats[id(team)]:
+                    if not free_drivers:
+                        break
+                    # Pick best available driver quickly
+                    driver = free_drivers.pop(0)
+                    tentative[id(driver)] = (team, seat_idx)
 
         # Finalise all tentative assignments
         for drv_id, (team, seat_idx) in tentative.items():

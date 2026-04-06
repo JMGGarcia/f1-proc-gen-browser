@@ -23,7 +23,9 @@ class Country:
         self.millionaires = millionaires          # 1-10: wealthy individuals (F1 funding)
         self.interest = interest                  # 1-10: local interest in F1
         self.infrastructure = infrastructure      # 1-10: car building/development capability
-    
+        self.driver_weight = self._set_driver_weight()
+        self.team_weight = self._set_team_weight()
+
     def __repr__(self) -> str:
         return f"Country({self.code})"
     
@@ -35,13 +37,11 @@ class Country:
     def __hash__(self) -> int:
         return hash(self.code)
     
-    @property
-    def driver_weight(self) -> float:
+    def _set_driver_weight(self) -> float:
         """Pre-computed weight for driver generation (all 4 characteristics)."""
-        return (self.population + self.millionaires + self.interest + self.infrastructure) / 4
+        return (self.population + self.millionaires + self.interest * 2 + self.infrastructure) / 5
     
-    @property
-    def team_weight(self) -> float:
+    def _set_team_weight(self) -> float:
         """Pre-computed weight for team generation (millionaires, interest, infrastructure - no population)."""
         return (self.millionaires + self.interest + self.infrastructure) / 3
 
@@ -71,6 +71,12 @@ COUNTRIES = {
     "CA": Country("CA", "Canada", "🇨🇦", population=5, millionaires=7, interest=8, infrastructure=8),
     "NZ": Country("NZ", "New Zealand", "🇳🇿", population=2, millionaires=4, interest=7, infrastructure=4),
     "ZA": Country("ZA", "South Africa", "🇿🇦", population=6, millionaires=3, interest=5, infrastructure=2),
+    "AT": Country("AT", "Austria", "🇦🇹", population=3, millionaires=5, interest=10, infrastructure=8),
+    "DK": Country("DK", "Denmark", "🇩🇰", population=3, millionaires=5, interest=10, infrastructure=8),
+    "BE": Country("BE", "Belgium", "🇧🇪", population=3, millionaires=4, interest=10, infrastructure=8),
+    "SA": Country("SA", "Saudi Arabia", "🇸🇦", population=5, millionaires=10, interest=1, infrastructure=2),
+    "QA": Country("QA", "Qatar", "🇶🇦", population=2, millionaires=10, interest=2, infrastructure=2),
+    "AE": Country("AE", "United Arab Emirates", "🇦🇪", population=3, millionaires=10, interest=2, infrastructure=3),
 }
 
 
