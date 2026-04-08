@@ -20,6 +20,7 @@ class Track(Base):
     name = Column(String, nullable=False)
     downforce_over_engine = Column(Float, nullable=False)
     car_over_driver = Column(Float, nullable=False)
+    target_lap_time = Column(Float, nullable=False, default=90.0)
 
 
 class Engine(Base):
@@ -112,6 +113,7 @@ class RaceResult(Base):
     position = Column(Integer, nullable=False)  # 1-based; 0 = DNF
     points = Column(Integer, nullable=False, default=0)
     dnf = Column(Boolean, default=False, nullable=False)
+    total_time = Column(Float, nullable=True)  # race time in seconds; None for DNF
 
     race = relationship("Race")
     driver = relationship("Driver")

@@ -20,29 +20,30 @@ from sim.tracks import Track
 
 
 def _make_tracks() -> List[Track]:
+    # (name, downforce_over_engine, car_over_driver, target_lap_time_seconds)
     data = [
-        ("Melbourne",    0.6,  0.8),
-        ("Shanghai",     0.5,  0.8),
-        ("Bahrain",      0.7,  0.8),
-        ("Sochi",        0.3,  0.8),
-        ("Barcelona",    0.6,  0.8),
-        ("Monaco",       0.9,  0.8),
-        ("Montreal",     0.2,  0.8),
-        ("Baku",         0.1,  0.8),
-        ("Spielberg",    0.2,  0.8),
-        ("Silverstone",  0.5,  0.8),
-        ("Budapest",     0.75, 0.8),
-        ("Spa",          0.1,  0.8),
-        ("Monza",        0.1,  0.8),
-        ("Singapore",    0.85, 0.8),
-        ("Kuala Lumpur", 0.35, 0.8),
-        ("Suzuka",       0.6,  0.8),
-        ("Austin",       0.4,  0.8),
-        ("Mexico City",  0.4,  0.8),
-        ("Sao Paulo",    0.25, 0.8),
-        ("Abu Dhabi",    0.65, 0.8),
+        ("Melbourne",    0.6,  0.8,  80.0),
+        ("Shanghai",     0.5,  0.8,  95.0),
+        ("Bahrain",      0.7,  0.8,  93.0),
+        ("Sochi",        0.3,  0.8,  96.0),
+        ("Barcelona",    0.6,  0.8,  79.0),
+        ("Monaco",       0.9,  0.8,  72.0),
+        ("Montreal",     0.2,  0.8,  74.0),
+        ("Baku",         0.1,  0.8, 102.0),
+        ("Spielberg",    0.2,  0.8,  65.0),
+        ("Silverstone",  0.5,  0.8,  88.0),
+        ("Budapest",     0.75, 0.8,  78.0),
+        ("Spa",          0.1,  0.8, 108.0),
+        ("Monza",        0.1,  0.8,  82.0),
+        ("Singapore",    0.85, 0.8, 101.0),
+        ("Kuala Lumpur", 0.35, 0.8,  91.0),
+        ("Suzuka",       0.6,  0.8,  91.0),
+        ("Austin",       0.4,  0.8,  96.0),
+        ("Mexico City",  0.4,  0.8,  79.0),
+        ("Sao Paulo",    0.25, 0.8,  71.0),
+        ("Abu Dhabi",    0.65, 0.8,  95.0),
     ]
-    return [Track(name=n, downforce_over_engine=d, car_over_driver=c) for n, d, c in data]
+    return [Track(name=n, downforce_over_engine=d, car_over_driver=c, target_lap_time=t) for n, d, c, t in data]
 
 
 def _make_engines() -> List[Engine]:
@@ -52,21 +53,20 @@ def _make_engines() -> List[Engine]:
         ("Chevrolet",  "#FFD700", "#303030", "US"),
         ("Jaguar",     "#006400", "#FFD700", "EN"),
         ("Audi",       "#303030", "#FFFFFF", "GE"),
-        ("Toyota",     "#CC0000", "#FFFFFF", "JP"),
+        ("Toyota",     "#FFFFFF", "#CC0000", "JP"),
         ("Ford",       "#003087", "#FFFFFF", "US"),
-        ("Hyundai",    "#002C5F", "#FFFFFF", "KR"),
+        ("Hyundai",    "#FFFFFF", "#002C5F", "KR"),
         ("BMW",        "#0066CC", "#FFFFFF", "GE"),
-        ("Honda",      "#1B1B1B", "#FFFFFF", "JP"),
+        ("Honda",      "#FFFFFF", "#1B1B1B", "JP"),
         ("Renault",    "#FFE000", "#000000", "FR"),
         ("Mercedes",   "#C0C0C0", "#111111", "GE"),
         ("Ferrari",    "#DC0000", "#FFD700", "IT"),
         ("Porsche",    "#737373", "#000000", "GE"),
-        ("Alfa Romeo", "#C8102E", "#FFFFFF", "IT"),
-        ("Peugeot",    "#003189", "#FFFFFF", "FR"),
+        ("Alfa Romeo", "#FFFFFF", "#C8102E", "IT"),
+        ("Peugeot",    "#003189", "#C0C0C0", "FR"),
         ("Nissan",     "#C3002F", "#C0C0C0", "JP"),
         ("Subaru",     "#013A8A", "#FFD700", "JP"),
         ("Mazda",      "#D61621", "#FFFFFF", "JP"),
-        ("Cadillac",   "#1B1B1B", "#B8975A", "US"),
     ]
     return [
         Engine(name=n, power=random.random(), reliability=0.8,
@@ -217,6 +217,7 @@ def seed_world(db, names_dir: str = "./names") -> Tuple[
             name=track.name,
             downforce_over_engine=track.downforce_over_engine,
             car_over_driver=track.car_over_driver,
+            target_lap_time=track.target_lap_time,
         )
         db.add(db_track)
     db.flush()

@@ -8,6 +8,8 @@ from db import models as m
 from db.backup import cleanup_backups, get_world_id8, make_backup
 from sim.constants import DriverConstants, PointsSystem, SimulationConstants, TeamConstants
 from sim.drivers import Driver, DriverGenerator
+from sim.flags import NATIONALITY_FLAGS
+from sim.race import LapRace
 from sim.season import Season
 from sim.sponsors import Sponsor
 from sim.teams import Direction, Engine, OwnerType, Team
@@ -72,41 +74,119 @@ class WorldRunner:
         self.n_seasons = n_seasons
         self.sponsors: List[Sponsor] = sponsors or []
 
-        # Tick-loop state (race-by-race live feed)
+        # Tick-loop state (lap-by-lap live feed)
         self._tick_season: Optional[Season] = None
         self._tick_season_num: int = 0
         self._tick_season_id: int = 0
-        self._tick_race_iter = None
         self._tick_race_records: list = []
         self._tick_total_rounds: int = len(tracks)
+
+        # Pending races this season: [(round_num, track), ...]
+        self._pending_rounds: list = []
+
+        # Active lap iterator for the current race
+        self._current_lap_race = None
+        self._current_lap_iter = None
+        self._current_round_num: int = 0
+        self._current_db_race_id: int = 0
+        self._current_track = None
+
+        # Last broadcasted lap state (for snapshot on reconnect)
+        self._last_lap_num: int = 0
+        self._last_lap_standings: list = []
 
     # ------------------------------------------------------------------ #
     # Tick-based live feed                                                 #
     # ------------------------------------------------------------------ #
 
-    def tick_one_race(self, db) -> list[dict]:
-        """Run one race. Returns a list of JSON-serialisable SSE payload dicts
-        (usually 1 item; 2 items at season end: standings then events)."""
-        if self._tick_race_iter is None:
+    def tick_one_lap(self, db) -> list[dict]:
+        """Advance simulation by one lap. Returns SSE payload list.
+        One payload per call; two payloads at season end (standings + events)."""
+        if self._tick_season is None:
             self._tick_start_season(db)
 
-        try:
-            round_num, track, results, driver_snap, team_snap = next(self._tick_race_iter)
-            self._tick_race_records.append((track, results))
-            self._write_one_race(db, self._tick_season_id, round_num, track, results)
+        # Start a new race when there is no active lap iterator
+        if self._current_lap_iter is None:
+            if not self._pending_rounds:
+                return self._tick_finish_season(db)
+
+            self._current_round_num, self._current_track = self._pending_rounds.pop(0)
+            self._current_lap_race = LapRace(self._current_track)
+            self._current_lap_iter = self._current_lap_race.iter_laps(self.teams)
+
+            # Create the Race row now so the page URL is immediately reachable
+            db_race = m.Race(
+                season_id=self._tick_season_id,
+                track_id=self._current_track.db_id,
+                round_number=self._current_round_num,
+            )
+            db.add(db_race)
+            db.flush()
             db.commit()
+            self._current_db_race_id = db_race.id
+
+            print(
+                f"  [tick] Season {self._tick_season_num} "
+                f"round {self._current_round_num}/{self._tick_total_rounds}: "
+                f"{self._current_track.name}",
+                flush=True,
+            )
+
+        # Advance one lap
+        try:
+            lap_num, standings = next(self._current_lap_iter)
+            return [self._serialise_lap_event(lap_num, standings)]
+        except StopIteration:
+            # All 50 laps done — finalise the race
+            results = self._current_lap_race.get_results()
+
+            # Award championship points
+            points_table = PointsSystem.RACE_POINTS
+            for idx, (driver, time_val) in enumerate(results):
+                if time_val != -1.0 and idx < len(points_table):
+                    self._tick_season._award_points(driver, points_table[idx])
+
+            self._write_race_results_for(db, self._current_db_race_id, results)
+            self._tick_race_records.append((self._current_track, results))
+            db.commit()
+
+            driver_snap = sorted(
+                self._tick_season.classification_driver.items(),
+                key=lambda x: x[1], reverse=True,
+            )
+            team_snap = sorted(
+                self._tick_season.classification_team.items(),
+                key=lambda x: x[1], reverse=True,
+            )
+
+            self._current_lap_iter = None
+            self._current_lap_race = None
+
             return [{
                 "type": "race_result",
                 "season": self._tick_season_num,
-                "round": round_num,
+                "round": self._current_round_num,
                 "total_rounds": self._tick_total_rounds,
-                "track": {"id": track.db_id, "name": track.name},
+                "track": {"id": self._current_track.db_id, "name": self._current_track.name},
                 "results": self._serialise_results(results),
                 "driver_standings": self._serialise_driver_snap(driver_snap),
                 "team_standings": self._serialise_team_snap(team_snap),
             }]
-        except StopIteration:
-            return self._tick_finish_season(db)
+
+    def get_live_race_state(self) -> dict | None:
+        """Return current live lap state for snapshot on page load. None if no race active."""
+        if self._current_track is None or not self._last_lap_standings:
+            return None
+        return {
+            "active": self._current_lap_iter is not None,
+            "season": self._tick_season_num,
+            "round": self._current_round_num,
+            "total_rounds": self._tick_total_rounds,
+            "track_name": self._current_track.name,
+            "lap": self._last_lap_num,
+            "total_laps": LapRace.LAPS,
+            "standings": self._last_lap_standings,
+        }
 
     def _tick_start_season(self, db) -> None:
         in_progress = (
@@ -127,7 +207,9 @@ class WorldRunner:
         self._tick_season_id = db_season.id
         self._tick_season = Season(self.tracks, self.teams, self._tick_season_num)
         self._tick_race_records = []
-        self._tick_race_iter = self._tick_season.iter_races()
+        self._pending_rounds = list(enumerate(self.tracks, 1))
+        self._current_lap_iter = None
+        self._current_lap_race = None
         print(f"  [tick] Starting season {self._tick_season_num}…", flush=True)
 
     def _tick_resume_season(self, db, in_progress: "m.Season") -> None:
@@ -221,7 +303,13 @@ class WorldRunner:
             f"({n_done}/{n_total} races done)…",
             flush=True,
         )
-        self._tick_race_iter = self._tick_season.iter_races(skip_rounds=done_round_nums)
+        self._pending_rounds = [
+            (round_num, track)
+            for round_num, track in enumerate(self.tracks, 1)
+            if round_num not in done_round_nums
+        ]
+        self._current_lap_iter = None
+        self._current_lap_race = None
 
     def _tick_finish_season(self, db) -> dict:
         season_num = self._tick_season_num
@@ -267,9 +355,14 @@ class WorldRunner:
         )
 
         # Reset tick state
-        self._tick_race_iter = None
         self._tick_race_records = []
         self._tick_season = None
+        self._pending_rounds = []
+        self._current_lap_iter = None
+        self._current_lap_race = None
+        self._current_track = None
+        self._current_db_race_id = 0
+        self._last_lap_standings = []
 
         print(f"  [tick] Season {season_num} complete.", flush=True)
         return [
@@ -297,13 +390,31 @@ class WorldRunner:
             },
         ]
 
+    def _write_race_results_for(self, db, db_race_id: int, results) -> None:
+        """Write RaceResult rows into an already-created Race row (tick-mode)."""
+        points_table = PointsSystem.RACE_POINTS
+        for idx, (driver, time_val) in enumerate(results):
+            dnf = time_val == -1.0
+            position = 0 if dnf else idx + 1
+            pts = 0 if dnf or idx >= len(points_table) else points_table[idx]
+            db.add(m.RaceResult(
+                race_id=db_race_id,
+                driver_id=driver.db_id,
+                team_id=driver.team.db_id,
+                engine_id=driver.team.engine.db_id,
+                position=position,
+                points=pts,
+                dnf=dnf,
+                total_time=None if dnf else time_val,
+            ))
+
     def _write_one_race(self, db, season_id: int, round_num: int, track, results) -> None:
         points_table = PointsSystem.RACE_POINTS
         db_race = m.Race(season_id=season_id, track_id=track.db_id, round_number=round_num)
         db.add(db_race)
         db.flush()
-        for idx, (driver, perf) in enumerate(results):
-            dnf = perf == -1.0
+        for idx, (driver, time_val) in enumerate(results):
+            dnf = time_val == -1.0
             position = 0 if dnf else idx + 1
             pts = 0 if dnf or idx >= len(points_table) else points_table[idx]
             db.add(m.RaceResult(
@@ -314,6 +425,7 @@ class WorldRunner:
                 position=position,
                 points=pts,
                 dnf=dnf,
+                total_time=None if dnf else time_val,
             ))
 
     @staticmethod
@@ -342,6 +454,54 @@ class WorldRunner:
                 "dnf": dnf,
             })
         return out
+
+    def _serialise_lap_event(self, lap: int, standings: list) -> dict:
+        """Serialise a lap's standings into a race_start or race_lap SSE payload."""
+        event_type = "race_start" if lap == 0 else "race_lap"
+        leader_time: float | None = None
+        serialised = []
+        for i, s in enumerate(standings):
+            if not s.dnf and leader_time is None:
+                leader_time = s.total_time
+            if s.dnf:
+                gap = "DNF"
+            elif i == 0:
+                gap = "LEADER"
+            else:
+                gap = f"+{s.total_time - leader_time:.3f}"
+            engine = s.team.engine if s.team else None
+            sponsor = s.team.sponsor if s.team else None
+            serialised.append({
+                "pos": i + 1,
+                "driver_id": s.driver.db_id,
+                "driver_name": f"{s.driver.first_name} {s.driver.last_name}",
+                "driver_nat": s.driver.nationality,
+                "driver_flag": NATIONALITY_FLAGS.get(s.driver.nationality, ""),
+                "team_name": s.team.name,
+                "team_color_primary": s.team.color_primary,
+                "team_color_secondary": s.team.color_secondary,
+                "engine_name": engine.name if engine else "",
+                "engine_color_primary": engine.color_primary if engine else "#333",
+                "engine_color_secondary": engine.color_secondary if engine else "#fff",
+                "sponsor_name": sponsor.name if sponsor else "",
+                "sponsor_color_primary": sponsor.color_primary if sponsor else "#333",
+                "sponsor_color_secondary": sponsor.color_secondary if sponsor else "#fff",
+                "gap": gap,
+                "event": s.last_event,
+                "dnf": s.dnf,
+            })
+        self._last_lap_num = lap
+        self._last_lap_standings = serialised
+        return {
+            "type": event_type,
+            "season": self._tick_season_num,
+            "round": self._current_round_num,
+            "total_rounds": self._tick_total_rounds,
+            "track": {"id": self._current_track.db_id, "name": self._current_track.name},
+            "lap": lap,
+            "total_laps": LapRace.LAPS,
+            "standings": serialised,
+        }
 
     @staticmethod
     def _serialise_driver_snap(snap) -> list:
@@ -416,8 +576,8 @@ class WorldRunner:
             db.add(db_race)
             db.flush()
 
-            for idx, (driver, perf) in enumerate(results):
-                dnf = perf == -1.0
+            for idx, (driver, time_val) in enumerate(results):
+                dnf = time_val == -1.0
                 position = 0 if dnf else idx + 1
                 pts = 0 if dnf or idx >= len(points_table) else points_table[idx]
                 db.add(m.RaceResult(
@@ -428,6 +588,7 @@ class WorldRunner:
                     position=position,
                     points=pts,
                     dnf=dnf,
+                    total_time=None if dnf else time_val,
                 ))
 
     def _write_season_stats(self, db, season_id: int, race_records, sorted_drivers, sorted_teams):
@@ -834,7 +995,38 @@ class WorldRunner:
                 engine.add_team(team)
                 team.engine_contract = self._random_contract_years()
 
+        # Engine suppliers restrict supply from teams that finished above them or in top 3
+        team_to_pos = {team: pos + 1 for pos, (team, _) in enumerate(sorted_teams)}
+        # Maps engine -> highest rival position still blocked (top 3 or anyone above the supplier)
+        engine_rival_threshold: dict = {}
+        for team in self.teams:
+            if team.owner_type == OwnerType.ENGINE_SUPPLIER and team.owner_engine is not None:
+                supplier_pos = team_to_pos.get(team, 999)
+                engine_rival_threshold[team.owner_engine] = max(3, supplier_pos - 1)
+
         # Everyone else picks best available engine
+        for team, _ in sorted_teams:
+            if team.engine is not None:
+                continue
+            perception = self._compute_engine_perception(team)
+            rival_pos = team_to_pos.get(team, 999)
+            for engine in perception:
+                threshold = engine_rival_threshold.get(engine)
+                if (
+                    len(engine.teams) < SimulationConstants.MAX_TEAMS_PER_ENGINE
+                    and not (threshold is not None and rival_pos <= threshold)
+                ):
+                    team.engine = engine
+                    engine.add_team(team)
+                    team.engine_contract = self._random_contract_years()
+                    self._emit_event(
+                        db, season_num, "engine_deal",
+                        f"{team.name} signed a {team.engine_contract}-year engine deal with {engine.name} "
+                        f"(power {int(engine.power * 100)}, reliability {int(engine.reliability * 100)}).",
+                    )
+                    break
+
+        # Fallback: if a team still has no engine (all options were restricted), pick freely
         for team, _ in sorted_teams:
             if team.engine is not None:
                 continue

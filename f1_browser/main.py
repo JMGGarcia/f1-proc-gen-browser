@@ -50,12 +50,20 @@ def _start_keyboard_listener() -> None:
         old = termios.tcgetattr(fd)
         try:
             tty.setcbreak(fd)
-            print("  Press any key to tick immediately.", flush=True)
+            print("  SPACE: tick  |  K: finish race  |  S: finish season", flush=True)
             while True:
                 ready, _, _ = select.select([sys.stdin], [], [], 1.0)
                 if ready:
-                    sys.stdin.read(1)
-                    sim_state.trigger_tick()
+                    ch = sys.stdin.read(1)
+                    if ch == " ":
+                        sim_state.trigger_tick()
+                    elif ch in ("k", "K"):
+                        if sim_state.is_in_race():
+                            sim_state.trigger_finish_race()
+                        else:
+                            sim_state.trigger_tick()
+                    elif ch in ("s", "S"):
+                        sim_state.trigger_finish_season()
         except Exception:
             pass
         finally:

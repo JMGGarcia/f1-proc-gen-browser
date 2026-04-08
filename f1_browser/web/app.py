@@ -36,7 +36,7 @@ app.include_router(events.router)
 
 _nav_ctx_cache: dict | None = None
 _nav_ctx_timestamp: float = 0.0
-_NAV_CTX_TTL = 30.0  # seconds — nav only changes when a season completes
+_NAV_CTX_TTL = 12.0  # seconds — short enough to catch live race start/end
 
 
 def _get_nav_context() -> dict:
@@ -75,6 +75,15 @@ def _get_nav_context() -> dict:
                     "nav_season": latest.number,
                     "nav_champion": champ_data,
                 }
+        # Live race link (reads from in-memory runner, no DB needed)
+        runner = sim_state.get_runner()
+        live = runner.get_live_race_state() if runner else None
+        if live and live.get("active"):
+            result["live_race_url"] = f"/seasons/{live['season']}/races/{live['round']}"
+            result["live_race_name"] = live["track_name"]
+        else:
+            result["live_race_url"] = None
+            result["live_race_name"] = None
         _nav_ctx_cache = result
         _nav_ctx_timestamp = now
         return result

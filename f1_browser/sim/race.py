@@ -1,7 +1,8 @@
 from __future__ import annotations
 
 import random
-from typing import List, Tuple
+from dataclasses import dataclass
+from typing import List, Optional, Tuple
 
 from sim.constants import SimulationConstants
 from sim.drivers import Driver
@@ -9,32 +10,132 @@ from sim.teams import Team
 from sim.tracks import Track
 
 
-# (driver, performance)  — performance == -1 means DNF
+# (driver, total_race_time_seconds) — -1.0 means DNF
 RacePerformance = Tuple[Driver, float]
 
 
-class Race:
+@dataclass
+class DriverState:
+    driver: Driver
+    team: Team
+    total_time: float           # accumulated race time in seconds
+    combined_perf: float        # cached 0–1 performance value
+    pit_laps: set               # scheduled pit lap numbers
+    dnf: bool = False
+    dnf_lap: int = 0
+    last_event: Optional[str] = None  # "pit", "minor", "dnf", or None
+
+
+class LapRace:
+    LAPS = 50
+    PIT_TIME = 20.0          # seconds lost for a scheduled pit stop
+    INCIDENT_PIT_TIME = 30.0  # seconds lost for an incident pit stop
+
     def __init__(self, track: Track):
         self.track = track
+        self._final_results: Optional[List[RacePerformance]] = None
 
-    def perform_race(self, teams: List[Team]) -> List[RacePerformance]:
-        """Return drivers sorted by finishing position (best first). DNF = -1."""
-        performances: List[RacePerformance] = []
-
+    def _compute_perf(self, team: Team, driver: Driver) -> float:
         doe = self.track.downforce_over_engine
         cod = self.track.car_over_driver
+        car_perf = doe * team.chassis + (1 - doe) * team.engine.power
+        return cod * car_perf + (1 - cod) * driver.skill
 
+    def build_grid(self, teams: List[Team]) -> List[DriverState]:
+        """Sort drivers by qualifying performance and assign 0.2 s start gaps."""
+        entries = []
         for team in teams:
-            car_perf = (doe * team.chassis + (1 - doe) * team.engine.power) / 2
             for driver in team.drivers:
                 if driver is None:
                     continue
-                if random.random() > team.engine.reliability:
-                    performances.append((driver, -1.0))
-                else:
-                    base = cod * car_perf + (1 - cod) * driver.skill
-                    rnd = SimulationConstants.RACE_RANDOMNESS
-                    perf = random.random() * rnd + (1 - rnd) * base
-                    performances.append((driver, perf))
+                perf = self._compute_perf(team, driver)
+                # Qualifying noise — tighter than race randomness
+                noise = random.gauss(0, SimulationConstants.RACE_RANDOMNESS * 0.5)
+                entries.append((driver, team, perf + noise))
 
-        return sorted(performances, key=lambda x: x[1], reverse=True)
+        entries.sort(key=lambda x: x[2], reverse=True)
+
+        states: List[DriverState] = []
+        for i, (driver, team, _) in enumerate(entries):
+            perf = self._compute_perf(team, driver)
+            pit1 = random.randint(10, 20)
+            pit2 = random.randint(30, 40)
+            start_time = i * 0.2
+            states.append(DriverState(
+                driver=driver,
+                team=team,
+                total_time=start_time,
+                combined_perf=perf,
+                pit_laps={pit1, pit2},
+            ))
+        return states
+
+    def simulate_lap(self, states: List[DriverState], lap: int) -> None:
+        """Advance all active drivers one lap. Mutates states in place."""
+        target = self.track.target_lap_time
+
+        for s in states:
+            if s.dnf:
+                continue
+            s.last_event = None
+
+            # Base lap time: worst possible car+driver is 10 s off target
+            lap_time = target + (1 - s.combined_perf) * 10.0 + random.gauss(0, 0.15)
+            lap_time = max(lap_time, target * 0.93)  # floor at 93 % of target
+
+            # Scheduled pit stop
+            if lap in s.pit_laps:
+                lap_time += self.PIT_TIME
+                s.last_event = "pit"
+
+            # Per-lap incident probability scales with engine unreliability
+            p_incident = max(0.0, 1.0 - s.team.engine.reliability) / 50.0
+            if random.random() < p_incident:
+                if random.random() < 0.4:   # 40 % chance → major incident → DNF
+                    s.dnf = True
+                    s.dnf_lap = lap
+                    s.last_event = "dnf"
+                    continue
+                else:                        # 60 % chance → minor → extra pit stop
+                    lap_time += self.INCIDENT_PIT_TIME
+                    s.last_event = "minor"
+
+            s.total_time += lap_time
+
+    @staticmethod
+    def _sorted_standings(states: List[DriverState]) -> List[DriverState]:
+        active = sorted([s for s in states if not s.dnf], key=lambda s: s.total_time)
+        dnf = [s for s in states if s.dnf]
+        return active + dnf
+
+    def iter_laps(self, teams: List[Team]):
+        """Generator yielding (lap_number, standings) for lap 0 (grid) then laps 1–50."""
+        states = self.build_grid(teams)
+
+        # Lap 0: starting grid
+        yield 0, self._sorted_standings(states)
+
+        for lap in range(1, self.LAPS + 1):
+            self.simulate_lap(states, lap)
+            standings = self._sorted_standings(states)
+            yield lap, standings
+
+        # Cache final results for get_results()
+        self._final_results = [
+            (s.driver, -1.0 if s.dnf else s.total_time)
+            for s in self._sorted_standings(states)
+        ]
+
+    def get_results(self) -> List[RacePerformance]:
+        """Final sorted results; valid after iter_laps has been fully consumed."""
+        return self._final_results or []
+
+    def perform_race(self, teams: List[Team]) -> List[RacePerformance]:
+        """Run full race in one shot. Used by Season.iter_races() / simulate_many."""
+        for _ in self.iter_laps(teams):
+            pass
+        return self.get_results()
+
+
+# Backward-compatibility alias so existing imports of Race still work
+Race = LapRace

@@ -1,4 +1,5 @@
 from fastapi import APIRouter, Depends, HTTPException, Request
+from fastapi.responses import RedirectResponse
 from sqlalchemy.orm import Session
 
 from db.models import (
@@ -7,6 +8,7 @@ from db.models import (
 )
 from db.session import get_db_session
 from sim.flags import NATIONALITY_FLAGS
+from web import sim_state
 from web.templates_env import templates
 
 router = APIRouter(prefix="/seasons")
@@ -239,10 +241,18 @@ def race_detail(season_num: int, round_num: int, request: Request, db: Session =
     r_teams = {t.id: t for t in db.query(Team).filter(Team.id.in_(r_team_ids)).all()}
     r_engines = {e.id: e for e in db.query(Engine).filter(Engine.id.in_(r_engine_ids)).all()}
 
+    # Compute gap to leader from stored total_time
+    leader_time = next((r.total_time for r in results if not r.dnf and r.total_time), None)
     for r in results:
         r.driver_obj = r_drivers.get(r.driver_id)
         r.team_obj = r_teams.get(r.team_id)
         r.engine_obj = r_engines.get(r.engine_id)
+        if r.dnf or r.total_time is None or leader_time is None:
+            r.gap = None
+        elif r.position == 1:
+            r.gap = "LEADER"
+        else:
+            r.gap = f"+{r.total_time - leader_time:.3f}"
 
     prev_round = round_num - 1 if round_num > 1 else None
     next_round = (
@@ -250,6 +260,18 @@ def race_detail(season_num: int, round_num: int, request: Request, db: Session =
         if db.query(Race).filter_by(season_id=season.id, round_number=round_num + 1).first()
         else None
     )
+
+    # Check if this race is currently live — redirect to home page if so
+    runner = sim_state.get_runner()
+    live_state = runner.get_live_race_state() if runner else None
+    is_live = (
+        live_state is not None
+        and live_state.get("active")
+        and live_state.get("season") == season_num
+        and live_state.get("round") == round_num
+    )
+    if is_live:
+        return RedirectResponse("/", status_code=302)
 
     return templates.TemplateResponse(request, "race_detail.html", {
         "season": season,

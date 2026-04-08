@@ -41,6 +41,7 @@ def load_world_from_db(db: Session, names_dir: str = "./names"):
             name=t.name,
             downforce_over_engine=t.downforce_over_engine,
             car_over_driver=t.car_over_driver,
+            target_lap_time=t.target_lap_time if t.target_lap_time else 90.0,
             db_id=t.id,
         )
         for t in db_tracks

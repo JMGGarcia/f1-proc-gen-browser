@@ -9,7 +9,9 @@
 </div>
 
 <div class="page-header">
-  <h1>{{ track.name | upper }}</h1>
+  <h1>
+    {{ track.name | upper }}
+  </h1>
   <div class="subtitle">
     Season {{ season.number }} · Round {{ race.round_number }} ·
     Downforce bias {{ (track.downforce_over_engine * 100) | int }}% ·
@@ -19,6 +21,7 @@
 
 {% from "macros.html" import flag, team_badge, engine_badge %}
 
+{# ── Static race results ─────────────────────────────────────────────── #}
 <table class="data-table">
   <thead>
     <tr>
@@ -27,6 +30,7 @@
       <th>Nat</th>
       <th>Team</th>
       <th>Engine</th>
+      <th class="num" style="min-width:90px">Gap</th>
       <th class="pts">Pts</th>
     </tr>
   </thead>
@@ -47,6 +51,9 @@
       </td>
       <td>
         {% if r.engine_obj %}{{ engine_badge(r.engine_obj) }}{% else %}—{% endif %}
+      </td>
+      <td class="num">
+        {% if r.dnf or not r.gap %}—{% else %}{{ r.gap }}{% endif %}
       </td>
       <td class="pts">{% if not r.dnf %}{{ r.points }}{% endif %}</td>
     </tr>

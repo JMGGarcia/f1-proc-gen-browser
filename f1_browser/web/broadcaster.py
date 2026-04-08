@@ -46,7 +46,9 @@ def broadcast(payload: dict) -> None:
     with _lock:
         queues = list(_subscribers)
     for q in queues:
-        try:
-            _loop.call_soon_threadsafe(q.put_nowait, data)
-        except asyncio.QueueFull:
-            pass  # slow client — drop; snapshot on reconnect recovers state
+        def _put(q: asyncio.Queue = q) -> None:
+            try:
+                q.put_nowait(data)
+            except asyncio.QueueFull:
+                pass  # slow client — drop; snapshot on reconnect recovers state
+        _loop.call_soon_threadsafe(_put)

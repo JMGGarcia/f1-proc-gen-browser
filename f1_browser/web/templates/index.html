@@ -99,6 +99,25 @@
   </div>
 </div>
 
+<div id="live-lap" style="display:none;margin-bottom:16px">
+  <div id="live-lap-header" style="font-size:13px;margin-bottom:6px;color:var(--muted)"></div>
+  <table class="data-table">
+    <thead>
+      <tr>
+        <th class="pos">Pos</th>
+        <th>Driver</th>
+        <th style="width:24px"></th>
+        <th>Team</th>
+        <th>Engine</th>
+        <th>Sponsor</th>
+        <th class="num" style="min-width:90px">Gap</th>
+        <th style="width:50px"></th>
+      </tr>
+    </thead>
+    <tbody id="live-lap-body"></tbody>
+  </table>
+</div>
+
 <div id="live-race" style="display:none;margin-bottom:16px">
   <h3 id="live-race-title" style="font-size:13px;margin-bottom:6px"></h3>
   <table class="data-table">
@@ -126,11 +145,70 @@
 
 <div id="live-events" style="margin-bottom:16px"></div>
 
+<style>
+  .row-moved-up   { animation: flash-green 0.6s ease-out; }
+  .row-moved-down { animation: flash-red   0.6s ease-out; }
+  @keyframes flash-green { from { background: rgba(34,197,94,0.25); } to { background: transparent; } }
+  @keyframes flash-red   { from { background: rgba(239,68,68,0.15); } to { background: transparent; } }
+  #live-lap-body .dnf-row td { opacity: 0.4; }
+  .event-badge {
+    font-size: 11px; font-weight: bold;
+    padding: 1px 6px; border-radius: 3px; letter-spacing: 0.5px;
+  }
+  .event-badge.pit     { background: #2563eb; color: #fff; }
+  .event-badge.minor   { background: #d97706; color: #fff; }
+  .event-badge.dnf-evt { background: var(--accent); color: #fff; }
+</style>
+
 <script>
 (function () {
-  function statColor(v) {
-    var h = Math.round(Math.max(0, Math.min(1, v)) * 120);
-    return "hsl(" + h + ",70%,55%)";
+  var prevPositions = {};
+
+  function teamBadge(name, bg, fg) {
+    return "<span class=\"team-badge\" style=\"background:" + bg + ";color:" + fg + "\">" + name + "</span>";
+  }
+  function engineBadge(name, bg, fg) {
+    return name ? "<span class=\"engine-badge\" style=\"background:" + bg + ";color:" + fg + "\">" + name + "</span>" : "—";
+  }
+  function sponsorBadge(name, bg, fg) {
+    return name ? "<span class=\"sponsor-badge\" style=\"background:" + bg + ";color:" + fg + "\">" + name + "</span>" : "—";
+  }
+  function eventBadge(ev) {
+    if (ev === "pit")   return "<span class=\"event-badge pit\">PIT</span>";
+    if (ev === "minor") return "<span class=\"event-badge minor\">INC</span>";
+    if (ev === "dnf")   return "<span class=\"event-badge dnf-evt\">OUT</span>";
+    return "";
+  }
+
+  function renderLapStandings(lap, totalLaps, standings, season, round, trackName) {
+    var header = document.getElementById("live-lap-header");
+    if (lap === 0) {
+      header.textContent = "Season " + season + " · Round " + round + " · " + trackName + " — Starting Grid";
+    } else {
+      header.textContent = "Season " + season + " · Round " + round + " · " + trackName + " — Lap " + lap + " / " + totalLaps;
+    }
+
+    var tbody = document.getElementById("live-lap-body");
+    var rows = standings.map(function(entry, i) {
+      var newPos = i + 1;
+      var prevPos = prevPositions[entry.driver_id];
+      var cls = entry.dnf ? "dnf-row" : "";
+      if (prevPos !== undefined && prevPos !== newPos) {
+        cls += (cls ? " " : "") + (newPos < prevPos ? "row-moved-up" : "row-moved-down");
+      }
+      prevPositions[entry.driver_id] = newPos;
+      return "<tr" + (cls ? " class=\"" + cls + "\"" : "") + ">" +
+        "<td class=\"pos\">" + (entry.dnf ? "DNF" : newPos) + "</td>" +
+        "<td>" + entry.driver_name + "</td>" +
+        "<td style=\"font-size:16px\">" + (entry.driver_flag || "") + "</td>" +
+        "<td>" + teamBadge(entry.team_name, entry.team_color_primary, entry.team_color_secondary) + "</td>" +
+        "<td>" + engineBadge(entry.engine_name, entry.engine_color_primary, entry.engine_color_secondary) + "</td>" +
+        "<td>" + sponsorBadge(entry.sponsor_name, entry.sponsor_color_primary, entry.sponsor_color_secondary) + "</td>" +
+        "<td class=\"num\">" + entry.gap + "</td>" +
+        "<td>" + eventBadge(entry.event) + "</td>" +
+        "</tr>";
+    });
+    tbody.innerHTML = rows.join("");
   }
 
   function renderStandings(msg) {
@@ -139,7 +217,7 @@
       document.getElementById("live-driver-body").innerHTML =
         msg.driver_standings.map(function(d) {
           return "<tr><td>" + d.pos + "</td><td>" + d.driver_name + "</td>" +
-            "<td><span class=\"team-badge\" style=\"background:" + d.team_color_primary + ";color:" + d.team_color_secondary + "\">" + d.team_name + "</span></td>" +
+            "<td>" + teamBadge(d.team_name, d.team_color_primary, d.team_color_secondary) + "</td>" +
             "<td>" + d.points + "</td></tr>";
         }).join("");
     }
@@ -148,7 +226,7 @@
       document.getElementById("live-team-body").innerHTML =
         msg.team_standings.map(function(t) {
           return "<tr><td>" + t.pos + "</td>" +
-            "<td><span class=\"team-badge\" style=\"background:" + t.color_primary + ";color:" + t.color_secondary + "\">" + t.team_name + "</span></td>" +
+            "<td>" + teamBadge(t.team_name, t.color_primary, t.color_secondary) + "</td>" +
             "<td>" + t.points + "</td></tr>";
         }).join("");
     }
@@ -163,6 +241,21 @@
   es.onmessage = function(e) {
     var msg = JSON.parse(e.data);
 
+    if (msg.type === "race_start" || msg.type === "race_lap") {
+      // Show progress bar
+      if (msg.round && msg.total_rounds) {
+        var racePct = Math.round((msg.round - 1) / msg.total_rounds * 100);
+        document.getElementById("season-progress-wrap").style.display = "";
+        document.getElementById("season-progress-label").textContent =
+          "Season " + msg.season + " — Round " + msg.round + " / " + msg.total_rounds;
+        document.getElementById("season-progress-fill").style.width = racePct + "%";
+      }
+      // Show live lap table, hide race result table
+      document.getElementById("live-lap").style.display = "";
+      document.getElementById("live-race").style.display = "none";
+      renderLapStandings(msg.lap, msg.total_laps, msg.standings, msg.season, msg.round, msg.track.name);
+    }
+
     if (msg.type === "race_result" || msg.type === "snapshot") {
       // Progress bar
       if (msg.round && msg.total_rounds) {
@@ -173,7 +266,10 @@
         document.getElementById("season-progress-fill").style.width = pct + "%";
       }
 
-      // Race result table
+      // Hide lap table, show race result table
+      document.getElementById("live-lap").style.display = "none";
+      prevPositions = {};
+
       if (msg.results) {
         document.getElementById("live-race").style.display = "";
         document.getElementById("live-race-title").textContent =
@@ -183,22 +279,22 @@
             return "<tr>" +
               "<td>" + (r.dnf ? "DNF" : r.pos) + "</td>" +
               "<td>" + r.driver_name + "</td>" +
-              "<td><span class=\"team-badge\" style=\"background:" + r.team_color_primary + ";color:" + r.team_color_secondary + "\">" + r.team_name + "</span></td>" +
-              "<td>" + (r.engine_name ? "<span class=\"engine-badge\" style=\"background:" + r.engine_color_primary + ";color:" + r.engine_color_secondary + "\">" + r.engine_name + "</span>" : "—") + "</td>" +
-              "<td>" + (r.sponsor_name ? "<span class=\"sponsor-badge\" style=\"background:" + r.sponsor_color_primary + ";color:" + r.sponsor_color_secondary + "\">" + r.sponsor_name + "</span>" : "—") + "</td>" +
+              "<td>" + teamBadge(r.team_name, r.team_color_primary, r.team_color_secondary) + "</td>" +
+              "<td>" + engineBadge(r.engine_name, r.engine_color_primary, r.engine_color_secondary) + "</td>" +
+              "<td>" + sponsorBadge(r.sponsor_name, r.sponsor_color_primary, r.sponsor_color_secondary) + "</td>" +
               "<td>" + r.points + "</td>" +
               "</tr>";
           }).join("");
       }
 
-      // Driver/team title shows "in progress" heading
+      // Driver/team standings
       document.getElementById("live-driver-title").textContent = "Driver Championship";
       document.getElementById("live-team-title").textContent = "Team Championship";
       renderStandings(msg);
     }
 
     if (msg.type === "season_standings") {
-      // Hide the race table, fill progress bar to 100%, show final standings
+      document.getElementById("live-lap").style.display = "none";
       document.getElementById("live-race").style.display = "none";
       document.getElementById("season-progress-fill").style.width = "100%";
       document.getElementById("season-progress-label").textContent =
