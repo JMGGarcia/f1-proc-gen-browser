@@ -154,17 +154,13 @@ def season_detail(season_num: int, request: Request, db: Session = Depends(get_d
     ds_teams = {t.id: t for t in db.query(Team).filter(Team.id.in_(ds_team_ids)).all()}
     ds_engines = {e.id: e for e in db.query(Engine).filter(Engine.id.in_(ds_engine_ids)).all()}
 
-    for ds in driver_stats:
-        ds.driver_obj = ds_drivers.get(ds.driver_id)
-        ds.team_obj = ds_teams.get(ds.team_id) if ds.team_id else None
-        ds.engine_obj = ds_engines.get(ds.engine_id) if ds.engine_id else None
-        ds.driver_flag = NATIONALITY_FLAGS.get(ds.driver_obj.nationality, "") if ds.driver_obj else ""
-
-    # Batch-fetch for team_stats
+    # Batch-fetch for team_stats (must come before driver_stats loop for sponsor lookup)
     ts_team_ids = list({ts.team_id for ts in team_stats})
     ts_engine_ids = list({ts.engine_id for ts in team_stats if ts.engine_id})
+    ts_sponsor_ids = list({ts.sponsor_id for ts in team_stats if ts.sponsor_id})
     ts_teams = {t.id: t for t in db.query(Team).filter(Team.id.in_(ts_team_ids)).all()}
     ts_engines = {e.id: e for e in db.query(Engine).filter(Engine.id.in_(ts_engine_ids)).all()}
+    ts_sponsors = {s.id: s for s in db.query(Sponsor).filter(Sponsor.id.in_(ts_sponsor_ids)).all()}
     ess_rows = (
         db.query(EngineSeasonStats)
         .filter(
@@ -175,9 +171,13 @@ def season_detail(season_num: int, request: Request, db: Session = Depends(get_d
     )
     ess_by_engine = {e.engine_id: e for e in ess_rows}
 
+    # Build team→stats lookup for sponsor resolution in driver championships and race winners
+    ts_by_team_id = {ts.team_id: ts for ts in team_stats}
+
     for ts in team_stats:
         ts.team_obj = ts_teams.get(ts.team_id)
         ts.engine_obj = ts_engines.get(ts.engine_id) if ts.engine_id else None
+        ts.sponsor_obj = ts_sponsors.get(ts.sponsor_id) if ts.sponsor_id else None
         if ts.engine_id:
             eng_s = ess_by_engine.get(ts.engine_id)
             ts.engine_power = int(eng_s.power * 100) if eng_s else None
@@ -185,6 +185,14 @@ def season_detail(season_num: int, request: Request, db: Session = Depends(get_d
             ts.engine_power = None
         mgmt_vals = [v for v in (ts.owner_skill, ts.cto_development, ts.cpo_scouting) if v is not None]
         ts.direction_avg = int(sum(mgmt_vals) / len(mgmt_vals)) if mgmt_vals else None
+
+    for ds in driver_stats:
+        ds.driver_obj = ds_drivers.get(ds.driver_id)
+        ds.team_obj = ds_teams.get(ds.team_id) if ds.team_id else None
+        ds.engine_obj = ds_engines.get(ds.engine_id) if ds.engine_id else None
+        ds.driver_flag = NATIONALITY_FLAGS.get(ds.driver_obj.nationality, "") if ds.driver_obj else ""
+        ts_row = ts_by_team_id.get(ds.team_id)
+        ds.sponsor_obj = ts_sponsors.get(ts_row.sponsor_id) if ts_row and ts_row.sponsor_id else None
 
     # Batch-fetch race winners
     race_ids = [r.id for r in races]
@@ -196,13 +204,19 @@ def season_detail(season_num: int, request: Request, db: Session = Depends(get_d
     winner_result_by_race = {wr.race_id: wr for wr in winner_results}
     winner_driver_ids = list({wr.driver_id for wr in winner_results if wr.driver_id})
     winner_team_ids = list({wr.team_id for wr in winner_results if wr.team_id})
+    winner_engine_ids = list({wr.engine_id for wr in winner_results if wr.engine_id})
     winner_drivers = {d.id: d for d in db.query(Driver).filter(Driver.id.in_(winner_driver_ids)).all()}
     winner_teams = {t.id: t for t in db.query(Team).filter(Team.id.in_(winner_team_ids)).all()}
+    winner_engines = {e.id: e for e in db.query(Engine).filter(Engine.id.in_(winner_engine_ids)).all()}
 
     for race in races:
         wr = winner_result_by_race.get(race.id)
         race.winner = winner_drivers.get(wr.driver_id) if wr else None
         race.winner_team = winner_teams.get(wr.team_id) if wr else None
+        race.winner_flag = NATIONALITY_FLAGS.get(race.winner.nationality, "") if race.winner else ""
+        race.winner_engine = winner_engines.get(wr.engine_id) if wr and wr.engine_id else None
+        ts_row = ts_by_team_id.get(wr.team_id) if wr else None
+        race.winner_sponsor = ts_sponsors.get(ts_row.sponsor_id) if ts_row and ts_row.sponsor_id else None
 
     prev_season = season_num - 1 if season_num > 1 else None
     next_season = season_num + 1 if db.query(Season).filter_by(number=season_num + 1, completed=True).first() else None

@@ -10,6 +10,8 @@
   <h1>SEASON {{ season.number }}</h1>
 </div>
 
+{% from "macros.html" import engine_badge, sponsor_badge %}
+
 <h2>DRIVER CHAMPIONSHIP</h2>
 <table class="data-table">
   <thead>
@@ -18,6 +20,7 @@
       <th>Driver</th>
       <th>Nat</th>
       <th>Team</th>
+      <th>Sponsor</th>
       <th>Engine</th>
       <th class="num">Skill</th>
       <th class="pts">Pts</th>
@@ -39,14 +42,8 @@
         </a>
         {% else %}—{% endif %}
       </td>
-      <td>
-        {% if ds.engine_obj %}
-        <span class="engine-badge"
-          style="background:{{ ds.engine_obj.color_primary }};color:{{ ds.engine_obj.color_secondary }}">
-          {{ ds.engine_obj.name }}
-        </span>
-        {% else %}—{% endif %}
-      </td>
+      <td>{% if ds.sponsor_obj %}{{ sponsor_badge(ds.sponsor_obj) }}{% else %}—{% endif %}</td>
+      <td>{% if ds.engine_obj %}{{ engine_badge(ds.engine_obj) }}{% else %}—{% endif %}</td>
       <td class="num">{{ (ds.skill * 100) | int }}</td>
       <td class="pts">{{ ds.total_points }}</td>
     </tr>
@@ -60,6 +57,7 @@
     <tr>
       <th class="pos">Pos</th>
       <th>Team</th>
+      <th>Sponsor</th>
       <th>Engine</th>
       <th class="num">Chs</th>
       <th class="num">Eng</th>
@@ -79,13 +77,9 @@
           </span>
         </a>
       </td>
+      <td>{% if ts.sponsor_obj %}{{ sponsor_badge(ts.sponsor_obj) }}{% else %}—{% endif %}</td>
       <td>
-        {% if ts.engine_obj %}
-        <span class="engine-badge"
-          style="background:{{ ts.engine_obj.color_primary }};color:{{ ts.engine_obj.color_secondary }}">
-          {{ ts.engine_obj.name }}
-        </span>
-        {% else %}—{% endif %}
+        {% if ts.engine_obj %}{{ engine_badge(ts.engine_obj) }}{% else %}—{% endif %}
       </td>
       <td class="num">{{ (ts.chassis * 100) | int }}</td>
       <td class="num">{{ ts.engine_power if ts.engine_power is not none else '—' }}</td>
@@ -103,7 +97,10 @@
       <th class="pos">Rnd</th>
       <th>Circuit</th>
       <th>Winner</th>
+      <th>Nat</th>
       <th>Team</th>
+      <th>Sponsor</th>
+      <th>Engine</th>
     </tr>
   </thead>
   <tbody>
@@ -116,6 +113,7 @@
         <a href="/drivers/{{ race.winner.id }}">{{ race.winner.first_name }} {{ race.winner.last_name }}</a>
         {% else %}—{% endif %}
       </td>
+      <td class="flag">{{ race.winner_flag }}</td>
       <td>
         {% if race.winner_team %}
         <span class="team-badge"
@@ -124,6 +122,8 @@
         </span>
         {% else %}—{% endif %}
       </td>
+      <td>{% if race.winner_sponsor %}{{ sponsor_badge(race.winner_sponsor) }}{% else %}—{% endif %}</td>
+      <td>{% if race.winner_engine %}{{ engine_badge(race.winner_engine) }}{% else %}—{% endif %}</td>
     </tr>
     {% endfor %}
   </tbody>

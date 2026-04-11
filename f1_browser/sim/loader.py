@@ -1,7 +1,6 @@
 """Reconstruct in-memory sim objects from the existing database state."""
 from __future__ import annotations
 
-import random
 from sqlalchemy.orm import Session
 
 from db import models as m
@@ -97,25 +96,28 @@ def load_world_from_db(db: Session, names_dir: str = "./names"):
 
     # ── Teams ────────────────────────────────────────────────────────────
     db_teams = db.query(m.Team).filter_by(is_active=True).order_by(m.Team.id).all()
+
+    # Batch-fetch all TeamSeasonStats and DriverSeasonStats for latest season (N+1 fix)
+    all_tss = db.query(m.TeamSeasonStats).filter_by(season_id=latest_season_id).all()
+    tss_by_team: dict[int, m.TeamSeasonStats] = {tss.team_id: tss for tss in all_tss}
+
+    from collections import defaultdict
+    all_dss = db.query(m.DriverSeasonStats).filter_by(season_id=latest_season_id).all()
+    dss_by_team: dict[int, list] = defaultdict(list)
+    for dss in all_dss:
+        if dss.team_id is not None:
+            dss_by_team[dss.team_id].append(dss)
+
     teams: list[Team] = []
     for t in db_teams:
-        ts = (
-            db.query(m.TeamSeasonStats)
-            .filter_by(team_id=t.id, season_id=latest_season_id)
-            .first()
-        )
+        ts = tss_by_team.get(t.id)
         chassis = ts.chassis if ts else 0.5
 
         # Find current engine (from latest TeamSeasonStats)
         engine = engine_map.get(ts.engine_id) if (ts and ts.engine_id) else None
 
         # Find current drivers (from DriverSeasonStats for latest season)
-        team_driver_stats = (
-            db.query(m.DriverSeasonStats)
-            .filter_by(team_id=t.id, season_id=latest_season_id)
-            .limit(2)
-            .all()
-        )
+        team_driver_stats = dss_by_team.get(t.id, [])[:2]
         assigned_drivers = [driver_map.get(ds.driver_id) for ds in team_driver_stats]
         # Pad to 2 slots, fill None if a seat is empty
         while len(assigned_drivers) < 2:
@@ -175,7 +177,7 @@ def load_world_from_db(db: Session, names_dir: str = "./names"):
         team.position_history = [s.championship_position for s in reversed(past_stats)]
 
     # ── Collect all non-retired chiefs (including free agents) ───────────
-    chief_gen = ChiefGenerator(names_dir=names_dir)
+    chief_gen = ChiefGenerator(names_dir=names_dir, name_structure=driver_gen.name_structure)
     all_chiefs: list[Chief] = []
     team_map_by_id = {team.db_id: team for team in teams}
     db_active_chiefs = db.query(m.TeamChief).filter_by(retired=False).all()
@@ -211,4 +213,4 @@ def load_world_from_db(db: Session, names_dir: str = "./names"):
 
 def _fallback_engine(engines) -> Engine:
     """Return the engine with the most capacity (fewest teams) as a fallback."""
-    return random.choice(engines)
+    return min(engines, key=lambda e: len(e.teams))

@@ -18,6 +18,8 @@ engine = create_engine(
 @event.listens_for(engine, "connect")
 def set_wal_mode(dbapi_connection, connection_record):
     dbapi_connection.execute("PRAGMA journal_mode=WAL")
+    dbapi_connection.execute("PRAGMA wal_autocheckpoint=1000")
+    dbapi_connection.execute("PRAGMA synchronous=NORMAL")
 
 
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
@@ -41,7 +43,10 @@ def get_session() -> Session:
 
 
 def get_db_session():
-    """FastAPI dependency: yields a DB session."""
+    """FastAPI dependency: yields a read-only DB session.
+
+    This session is never committed on exit. Use get_session() for write routes.
+    """
     db = SessionLocal()
     try:
         yield db

@@ -4,6 +4,7 @@ from sqlalchemy.orm import Session
 from db.models import Season, Team, TeamChief, TeamSeasonStats
 from db.session import get_db_session
 from sim.flags import NATIONALITY_FLAGS
+from sim.teams import ChiefRole
 from web.templates_env import templates
 
 router = APIRouter(prefix="/staff")
@@ -95,11 +96,11 @@ def staff_detail(chief_id: int, request: Request, db: Session = Depends(get_db_s
 
     career = []
     for row in career_rows:
-        if chief.role == "owner":
+        if chief.role == ChiefRole.OWNER:
             skill1, skill2 = row.owner_skill, None
-        elif chief.role == "cto":
+        elif chief.role == ChiefRole.CTO:
             skill1, skill2 = row.cto_development, row.cto_eng_scouting
-        elif chief.role == "cpo":
+        elif chief.role == ChiefRole.CPO:
             skill1, skill2 = row.cpo_scouting, None
         else:
             skill1, skill2 = None, None

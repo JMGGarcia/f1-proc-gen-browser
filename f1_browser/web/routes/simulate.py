@@ -1,5 +1,3 @@
-import time
-
 from fastapi import APIRouter, Depends, Form
 from fastapi.responses import RedirectResponse
 from sqlalchemy.orm import Session
@@ -27,5 +25,4 @@ def simulate(
 
     sim_state.simulate_many(next_num, count)
 
-    time.sleep(0.8)
     return RedirectResponse("/", status_code=303)

@@ -4,11 +4,12 @@ The runner is only available when the simulation was started in the same process
 """
 from __future__ import annotations
 
+import queue
 import threading
-import time
 from typing import Optional
 
 _runner = None
+_runner_lock = threading.RLock()
 _lock = threading.Lock()
 _busy = False
 
@@ -16,55 +17,54 @@ TICK_INTERVAL_SECONDS = 2
 
 _tick_thread: Optional[threading.Thread] = None
 _tick_running = False
-_tick_event = threading.Event()
+_cmd_queue: queue.Queue = queue.Queue()
 
 _TICK_SINGLE = 0
 _TICK_FINISH_RACE = 1
 _TICK_FINISH_SEASON = 2
-_next_mode = _TICK_SINGLE
 
 
 def trigger_tick() -> None:
     """Wake the tick loop immediately instead of waiting for the next interval."""
-    global _next_mode
-    _next_mode = _TICK_SINGLE
-    _tick_event.set()
+    _cmd_queue.put(_TICK_SINGLE)
 
 
 def trigger_finish_race() -> None:
     """Advance ticks until the current race ends (race_result payload)."""
-    global _next_mode
-    _next_mode = _TICK_FINISH_RACE
-    _tick_event.set()
+    _cmd_queue.put(_TICK_FINISH_RACE)
 
 
 def trigger_finish_season() -> None:
     """Advance ticks until the current season ends (season_standings payload)."""
-    global _next_mode
-    _next_mode = _TICK_FINISH_SEASON
-    _tick_event.set()
+    _cmd_queue.put(_TICK_FINISH_SEASON)
 
 
 def is_in_race() -> bool:
     """Return True if a race lap iterator is currently active."""
-    return _runner is not None and _runner._current_lap_iter is not None
+    with _runner_lock:
+        runner = _runner
+    return runner is not None and runner._current_lap_iter is not None
 
 
 def register(runner) -> None:
-    global _runner
-    _runner = runner
+    with _runner_lock:
+        global _runner
+        _runner = runner
 
 
 def get_runner():
-    return _runner
+    with _runner_lock:
+        return _runner
 
 
 def is_available() -> bool:
-    return _runner is not None
+    with _runner_lock:
+        return _runner is not None
 
 
 def is_busy() -> bool:
-    return _busy
+    with _lock:
+        return _busy
 
 
 def start_tick_loop() -> None:
@@ -92,29 +92,46 @@ def _tick_loop() -> None:
     from web import broadcaster
     log = logging.getLogger(__name__)
     while _tick_running:
-        _tick_event.wait(timeout=TICK_INTERVAL_SECONDS)
-        _tick_event.clear()
+        try:
+            mode = _cmd_queue.get(timeout=TICK_INTERVAL_SECONDS)
+        except queue.Empty:
+            # Periodic auto-tick
+            mode = _TICK_SINGLE
+
         if not _tick_running:
             break
-        if _runner is None:
+
+        with _runner_lock:
+            runner = _runner
+        if runner is None:
             continue
 
-        global _next_mode
-        mode = _next_mode
-        _next_mode = _TICK_SINGLE
+        # Skip processing if simulate_many batch is running
+        with _lock:
+            currently_busy = _busy
+        if currently_busy:
+            continue
 
         while _tick_running:
+            # Stop if a batch simulation took over
+            with _lock:
+                if _busy:
+                    break
             try:
                 with get_session() as db:
-                    payloads = _runner.tick_one_lap(db)
+                    payloads = runner.tick_one_lap(db)
                 for i, payload in enumerate(payloads):
                     broadcaster.broadcast(payload)
                     # Pause between season_standings and season_events so standings
                     # are visible before the off-season event list appears.
                     # Skip the pause when fast-forwarding.
                     if mode == _TICK_SINGLE and i < len(payloads) - 1:
-                        _tick_event.wait(timeout=5)
-                        _tick_event.clear()
+                        try:
+                            next_cmd = _cmd_queue.get(timeout=5)
+                            # Re-queue so the outer loop processes it after the pause
+                            _cmd_queue.put(next_cmd)
+                        except queue.Empty:
+                            pass
 
                 if mode == _TICK_SINGLE:
                     break
@@ -131,21 +148,28 @@ def _tick_loop() -> None:
 
 def simulate_many(start_season_num: int, count: int) -> bool:
     """Spawn a background thread to run `count` seasons. Returns False if already running."""
-    global _busy
     with _lock:
-        if _busy or _runner is None:
+        global _busy
+        if _busy:
             return False
+    with _runner_lock:
+        runner = _runner
+    if runner is None:
+        return False
+
+    with _lock:
         _busy = True
 
     def _run():
-        global _busy
         try:
             from db.session import get_session
             for n in range(count):
                 with get_session() as db:
-                    _runner.run_one_season(db, start_season_num + n)
+                    runner.run_one_season(db, start_season_num + n)
         finally:
-            _busy = False
+            with _lock:
+                global _busy
+                _busy = False
 
     threading.Thread(target=_run, daemon=True).start()
     return True

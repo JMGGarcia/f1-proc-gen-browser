@@ -69,3 +69,56 @@ class SimulationConstants:
 
 class PointsSystem:
     RACE_POINTS = [25, 18, 15, 12, 10, 8, 6, 4, 2, 1]
+
+
+class RaceConstants:
+    TRACK_PREFERENCE_BONUS = 0.05
+    QUALIFYING_NOISE_FACTOR = 0.5
+    PIT1_LAP_RANGE = (10, 20)
+    PIT2_LAP_RANGE = (30, 40)
+    START_GAP_SECONDS = 0.2
+    LAP_TIME_SPREAD = 10.0
+    LAP_TIME_NOISE_STDDEV = 0.15
+    LAP_TIME_FLOOR_PCT = 0.93
+    INCIDENT_PROB_DIVISOR = 50.0
+    MAJOR_INCIDENT_PROB = 0.4
+
+
+class SponsorConstants:
+    COLOR_DISTANCE_THRESHOLD = 80
+    RENEWAL_PROBABILITY = 0.75
+    CONTRACT_LARGE_MIN = 4
+    CONTRACT_LARGE_MAX = 6
+    CONTRACT_MEDIUM_MIN = 3
+    CONTRACT_MEDIUM_MAX = 5
+    CONTRACT_SMALL_MIN = 2
+    CONTRACT_SMALL_MAX = 4
+
+
+class WorldConstants:
+    FALLBACK_POSITION = 999
+    CHASSIS_ENGINE_RANDOM_FACTOR = 0.3
+    ENGINE_RELIABILITY_REVOLUTION_DELTA_MIN = 0.3
+    ENGINE_RELIABILITY_REVOLUTION_DELTA_RANGE = 0.2
+    CONTRACT_YEARS_PROB_2 = 0.02
+    CONTRACT_YEARS_PROB_3 = 0.2
+    CONTRACT_YEARS_PROB_4 = 0.8
+    CONTRACT_YEARS_PROB_5 = 0.95
+
+
+from enum import Enum
+
+
+class EventType(str, Enum):
+    RACE_START = "race_start"
+    RACE_LAP = "race_lap"
+    CHIEF_DEBUT = "chief_debut"
+    CHIEF_SUCCESSION = "chief_succession"
+    CHIEF_FREE_AGENT = "chief_free_agent"
+    CHIEF_SIGNING = "chief_signing"
+    DRIVER_RETIREMENT = "driver_retirement"
+    DRIVER_DEBUT = "driver_debut"
+    DRIVER_TRANSFER = "driver_transfer"
+    FORMULA_REVOLUTION = "formula_revolution"
+    ENGINE_DEAL = "engine_deal"
+    TEAM_SALE = "team_sale"

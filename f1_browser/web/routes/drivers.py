@@ -5,6 +5,7 @@ from sqlalchemy.orm import Session
 from db.models import Driver, DriverSeasonStats, Engine, Race, RaceResult, Season, Team, Track
 from db.session import get_db_session
 from sim.flags import NATIONALITY_FLAGS
+from web import sim_state
 from web.templates_env import templates
 
 router = APIRouter(prefix="/drivers")
@@ -15,38 +16,49 @@ def drivers_list(request: Request, db: Session = Depends(get_db_session)):
     drivers = db.query(Driver).filter_by(retired=False).order_by(Driver.last_name).all()
     driver_ids = [d.id for d in drivers]
 
-    # Latest season stats per driver (max season_id subquery)
-    latest_sid_per_driver = (
-        db.query(
-            DriverSeasonStats.driver_id,
-            func.max(DriverSeasonStats.season_id).label("max_sid"),
-        )
-        .filter(DriverSeasonStats.driver_id.in_(driver_ids))
-        .group_by(DriverSeasonStats.driver_id)
-        .subquery()
-    )
-    latest_dss_rows = (
-        db.query(DriverSeasonStats)
-        .join(
-            latest_sid_per_driver,
-            (DriverSeasonStats.driver_id == latest_sid_per_driver.c.driver_id)
-            & (DriverSeasonStats.season_id == latest_sid_per_driver.c.max_sid),
-        )
-        .all()
-    )
-    latest_dss_by_driver = {row.driver_id: row for row in latest_dss_rows}
+    # Prefer in-memory runner state: it reflects all off-season signings including
+    # transfers that happened after the last completed season but before any race
+    # results for the new season exist.
+    runner = sim_state.get_runner()
+    team_db_id_by_driver_id: dict[int, int] = {}
+    if runner is not None:
+        try:
+            team_db_id_by_driver_id = {
+                drv.db_id: drv.team.db_id
+                for drv in runner.drivers
+                if drv.team is not None and drv.team.db_id
+            }
+        except Exception:
+            pass  # fall through to DSS fallback
 
-    team_ids = list({row.team_id for row in latest_dss_rows if row.team_id})
+    if not team_db_id_by_driver_id:
+        # Fallback: use only the latest completed season DSS.
+        # May miss transfers that happened after that season's off-season.
+        latest_season = (
+            db.query(Season).filter_by(completed=True).order_by(Season.number.desc()).first()
+        )
+        latest_season_id = latest_season.id if latest_season else None
+        if latest_season_id:
+            fallback_rows = (
+                db.query(DriverSeasonStats)
+                .filter(
+                    DriverSeasonStats.driver_id.in_(driver_ids),
+                    DriverSeasonStats.season_id == latest_season_id,
+                )
+                .all()
+            )
+            team_db_id_by_driver_id = {
+                row.driver_id: row.team_id for row in fallback_rows if row.team_id
+            }
+
+    team_ids = list(set(team_db_id_by_driver_id.values()))
     teams_by_id = {t.id: t for t in db.query(Team).filter(Team.id.in_(team_ids)).all()}
 
     for d in drivers:
-        last_stats = latest_dss_by_driver.get(d.id)
-        d.latest_stats = last_stats
-        d.current_team = teams_by_id.get(last_stats.team_id) if last_stats and last_stats.team_id else None
-        d.display_age = (last_stats.age if last_stats else d.age) or "—"
-        d.display_skill = (
-            int((last_stats.skill if last_stats else d.skill or 0) * 100)
-        ) if (last_stats or d.skill) else "—"
+        db_team_id = team_db_id_by_driver_id.get(d.id)
+        d.current_team = teams_by_id.get(db_team_id) if db_team_id else None
+        d.display_age = d.age or "—"
+        d.display_skill = int(d.skill * 100) if d.skill is not None else "—"
         d.flag = NATIONALITY_FLAGS.get(d.nationality, "")
 
     drivers_with_team = [d for d in drivers if d.current_team]

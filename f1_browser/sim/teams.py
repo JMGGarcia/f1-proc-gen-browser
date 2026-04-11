@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import os
 import random
+from enum import Enum
 from typing import Dict, List, Optional, Tuple, TYPE_CHECKING
 
 from sim.constants import SimulationConstants, TeamConstants
@@ -14,13 +15,13 @@ from sim.drivers import Driver, DriverGenerator
 from sim.sponsors import Sponsor
 
 
-class OwnerType:
+class OwnerType(str, Enum):
     INDIVIDUAL = "individual"
     ENGINE_SUPPLIER = "engine_supplier"
     SPONSOR = "sponsor"
 
 
-class ChiefRole:
+class ChiefRole(str, Enum):
     OWNER = "owner"
     CTO   = "cto"
     CMO   = "cmo"
@@ -85,10 +86,12 @@ class Chief:
 
 
 class ChiefGenerator:
-    def __init__(self, names_dir: str = "./names"):
+    def __init__(self, names_dir: str = "./names", name_structure=None):
         self.names_dir = names_dir
-        self._driver_gen = DriverGenerator(names_dir=names_dir)
-        self._name_structure = self._driver_gen.name_structure
+        if name_structure is not None:
+            self._name_structure = name_structure
+        else:
+            self._name_structure = DriverGenerator(names_dir=names_dir).name_structure
 
     def _pick_name(self, nat_code: str) -> Tuple[str, str]:
         names = self._name_structure.get(nat_code)

@@ -4,7 +4,7 @@ import random
 from dataclasses import dataclass
 from typing import List, Optional, Tuple
 
-from sim.constants import SimulationConstants
+from sim.constants import RaceConstants, SimulationConstants
 from sim.drivers import Driver
 from sim.teams import Team
 from sim.tracks import Track
@@ -41,9 +41,9 @@ class LapRace:
         car_perf = doe * team.chassis + (1 - doe) * team.engine.power
         perf = cod * car_perf + (1 - cod) * driver.skill
         if self.track.db_id and self.track.db_id in driver.liked_track_ids:
-            perf += 0.05
+            perf += RaceConstants.TRACK_PREFERENCE_BONUS
         elif self.track.db_id and self.track.db_id in driver.disliked_track_ids:
-            perf -= 0.05
+            perf -= RaceConstants.TRACK_PREFERENCE_BONUS
         return perf
 
     def build_grid(self, teams: List[Team]) -> List[DriverState]:
@@ -53,24 +53,23 @@ class LapRace:
             for driver in team.drivers:
                 if driver is None:
                     continue
-                perf = self._compute_perf(team, driver)
+                clean_perf = self._compute_perf(team, driver)
                 # Qualifying noise — tighter than race randomness
-                noise = random.gauss(0, SimulationConstants.RACE_RANDOMNESS * 0.5)
-                entries.append((driver, team, perf + noise))
+                noise = random.gauss(0, SimulationConstants.RACE_RANDOMNESS * RaceConstants.QUALIFYING_NOISE_FACTOR)
+                entries.append((driver, team, clean_perf, clean_perf + noise))
 
-        entries.sort(key=lambda x: x[2], reverse=True)
+        entries.sort(key=lambda x: x[3], reverse=True)
 
         states: List[DriverState] = []
-        for i, (driver, team, _) in enumerate(entries):
-            perf = self._compute_perf(team, driver)
-            pit1 = random.randint(10, 20)
-            pit2 = random.randint(30, 40)
-            start_time = i * 0.2
+        for i, (driver, team, clean_perf, _) in enumerate(entries):
+            pit1 = random.randint(*RaceConstants.PIT1_LAP_RANGE)
+            pit2 = random.randint(*RaceConstants.PIT2_LAP_RANGE)
+            start_time = i * RaceConstants.START_GAP_SECONDS
             states.append(DriverState(
                 driver=driver,
                 team=team,
                 total_time=start_time,
-                combined_perf=perf,
+                combined_perf=clean_perf,
                 pit_laps={pit1, pit2},
             ))
         return states
@@ -84,9 +83,9 @@ class LapRace:
                 continue
             s.last_event = None
 
-            # Base lap time: worst possible car+driver is 10 s off target
-            lap_time = target + (1 - s.combined_perf) * 10.0 + random.gauss(0, 0.15)
-            lap_time = max(lap_time, target * 0.93)  # floor at 93 % of target
+            # Base lap time: worst possible car+driver is LAP_TIME_SPREAD s off target
+            lap_time = target + (1 - s.combined_perf) * RaceConstants.LAP_TIME_SPREAD + random.gauss(0, RaceConstants.LAP_TIME_NOISE_STDDEV)
+            lap_time = max(lap_time, target * RaceConstants.LAP_TIME_FLOOR_PCT)
 
             # Scheduled pit stop
             if lap in s.pit_laps:
@@ -94,9 +93,9 @@ class LapRace:
                 s.last_event = "pit"
 
             # Per-lap incident probability scales with engine unreliability
-            p_incident = max(0.0, 1.0 - s.team.engine.reliability) / 50.0
+            p_incident = max(0.0, 1.0 - s.team.engine.reliability) / RaceConstants.INCIDENT_PROB_DIVISOR
             if random.random() < p_incident:
-                if random.random() < 0.4:   # 40 % chance → major incident → DNF
+                if random.random() < RaceConstants.MAJOR_INCIDENT_PROB:   # major incident → DNF
                     s.dnf = True
                     s.dnf_lap = lap
                     s.last_event = "dnf"
@@ -140,7 +139,3 @@ class LapRace:
         for _ in self.iter_laps(teams):
             pass
         return self.get_results()
-
-
-# Backward-compatibility alias so existing imports of Race still work
-Race = LapRace

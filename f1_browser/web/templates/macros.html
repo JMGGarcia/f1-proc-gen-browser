@@ -25,3 +25,10 @@
   {{ engine.name }}
 </span>
 {% endmacro %}
+
+{% macro sponsor_badge(sponsor) %}
+<span class="sponsor-badge"
+  style="background:{{ sponsor.color_primary }};color:{{ sponsor.color_secondary }}">
+  {{ sponsor.name }}
+</span>
+{% endmacro %}

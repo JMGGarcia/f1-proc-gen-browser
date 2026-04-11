@@ -57,7 +57,7 @@ class Team(Base):
     color_secondary = Column(String, nullable=False)
     sponsor_id = Column(Integer, ForeignKey("sponsors.id"), nullable=True)
     sponsor_contract = Column(Integer, nullable=True)
-    is_active = Column(Boolean, default=True, nullable=False)
+    is_active = Column(Boolean, default=True, nullable=False, index=True)
     owner_type = Column(String, default="individual", nullable=True)  # "individual" | "engine_supplier" | "sponsor"
     owner_engine_id = Column(Integer, ForeignKey("engines.id"), nullable=True)
     owner_sponsor_id = Column(Integer, ForeignKey("sponsors.id"), nullable=True)
@@ -80,7 +80,7 @@ class Driver(Base):
     age = Column(Integer, nullable=True)
     skill = Column(Float, nullable=True)
     top_skill = Column(Float, nullable=True)
-    retired = Column(Boolean, default=False, nullable=False)
+    retired = Column(Boolean, default=False, nullable=False, index=True)
     retired_season = Column(Integer, nullable=True)
     loyalty = Column(Float, nullable=True)
     greed = Column(Float, nullable=True)
@@ -94,7 +94,7 @@ class Season(Base):
 
     id = Column(Integer, primary_key=True, index=True)
     number = Column(Integer, nullable=False, unique=True)
-    completed = Column(Boolean, default=False, nullable=False)
+    completed = Column(Boolean, default=False, nullable=False, index=True)
 
 
 class Race(Base):

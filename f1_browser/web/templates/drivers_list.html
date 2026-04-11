@@ -29,7 +29,7 @@
         {% if driver.current_team %}{{ team_badge(driver.current_team) }}{% else %}—{% endif %}
       </td>
       <td class="num">{{ driver.display_age }}</td>
-      <td class="num" {% if driver.latest_stats and driver.latest_stats.skill %}style="color:{{ stat_color(driver.latest_stats.skill) }}"{% endif %}>{{ driver.display_skill }}</td>
+      <td class="num" {% if driver.skill %}style="color:{{ stat_color(driver.skill) }}"{% endif %}>{{ driver.display_skill }}</td>
     </tr>
     {% endfor %}
   </tbody>

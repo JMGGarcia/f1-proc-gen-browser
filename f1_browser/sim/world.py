@@ -6,7 +6,7 @@ from typing import List, Optional, Tuple
 
 from db import models as m
 from db.backup import cleanup_backups, get_world_id8, make_backup
-from sim.constants import DriverConstants, PointsSystem, SimulationConstants, TeamConstants
+from sim.constants import DriverConstants, EventType, PointsSystem, RaceConstants, SimulationConstants, SponsorConstants, TeamConstants, WorldConstants
 from sim.drivers import Driver, DriverGenerator
 from sim.countries import get_all_countries
 from sim.flags import NATIONALITY_FLAGS
@@ -77,7 +77,8 @@ class WorldRunner:
         self.n_seasons = n_seasons
         self.sponsors: List[Sponsor] = sponsors or []
         self.chief_generator: ChiefGenerator = chief_generator or ChiefGenerator(
-            names_dir=driver_generator.names_dir
+            names_dir=driver_generator.names_dir,
+            name_structure=driver_generator.name_structure,
         )
         self.chiefs: List[Chief] = chiefs or []
 
@@ -467,7 +468,7 @@ class WorldRunner:
 
     def _serialise_lap_event(self, lap: int, standings: list) -> dict:
         """Serialise a lap's standings into a race_start or race_lap SSE payload."""
-        event_type = "race_start" if lap == 0 else "race_lap"
+        event_type = EventType.RACE_START if lap == 0 else EventType.RACE_LAP
         leader_time: float | None = None
         serialised = []
         for i, s in enumerate(standings):
@@ -725,7 +726,7 @@ class WorldRunner:
         new_chief.team = None
         self.chiefs.append(new_chief)
         self._emit_event(
-            db, season_num, "chief_debut",
+            db, season_num, EventType.CHIEF_DEBUT,
             f"{new_chief.first_name} {new_chief.last_name} "
             f"(age {new_chief.age}) entered the {new_chief.role.upper()} pool.",
         )
@@ -778,7 +779,7 @@ class WorldRunner:
                 team.owner = successor
                 self.chiefs.append(successor)
                 self._emit_event(
-                    db, season_num, "chief_succession",
+                    db, season_num, EventType.CHIEF_SUCCESSION,
                     f"{team.name}: {successor.first_name} {successor.last_name} succeeded "
                     f"{chief.first_name} {chief.last_name} as team owner (age {chief.age}).",
                 )
@@ -804,7 +805,7 @@ class WorldRunner:
                     chief.team = None
                     setattr(team, role_attr, None)
                     self._emit_event(
-                        db, season_num, "chief_free_agent",
+                        db, season_num, EventType.CHIEF_FREE_AGENT,
                         f"{chief.name} ({chief.role.upper()}) is now a free agent.",
                     )
 
@@ -858,7 +859,7 @@ class WorldRunner:
                     "contract_years": contract,
                 })
                 self._emit_event(
-                    db, season_num, "chief_signing",
+                    db, season_num, EventType.CHIEF_SIGNING,
                     f"{team.name} signed {chosen.name} as {role_str.upper()} "
                     f"(skill {chosen.skill_primary}) on a {contract}-year contract.",
                 )
@@ -893,7 +894,7 @@ class WorldRunner:
 
         for driver in to_retire:
             self._emit_event(
-                db, season_num, "driver_retirement",
+                db, season_num, EventType.DRIVER_RETIREMENT,
                 f"{driver.name} {driver.flag} retired from racing at age {driver.age} "
                 f"with a peak skill of {driver.top_skill_100}.",
             )
@@ -901,11 +902,11 @@ class WorldRunner:
 
     def _tweak_chassis_engine(self, db, season_num: int, season_id: int):
         revolution = random.random() < SimulationConstants.REVOLUTION_PROBABILITY
-        random_factor = 0.3
+        random_factor = WorldConstants.CHASSIS_ENGINE_RANDOM_FACTOR
 
         if revolution:
             self._emit_event(
-                db, season_num, "formula_revolution",
+                db, season_num, EventType.FORMULA_REVOLUTION,
                 "A technical regulation change shakes up the order! Car performance values have been reset.",
             )
 
@@ -941,7 +942,10 @@ class WorldRunner:
                 engine.power = min(1.0, engine.power + TeamConstants.ENGINE_OWNER_POWER_BONUS)
 
             if revolution:
-                engine.reliability -= random.random() * 0.2 + 0.3
+                engine.reliability -= (
+                    random.random() * WorldConstants.ENGINE_RELIABILITY_REVOLUTION_DELTA_RANGE
+                    + WorldConstants.ENGINE_RELIABILITY_REVOLUTION_DELTA_MIN
+                )
             engine.reliability += random.random() * 0.1 + 0.05
             engine.reliability = min(
                 SimulationConstants.MAXIMUM_RELIABILITY,
@@ -983,7 +987,7 @@ class WorldRunner:
         )
         if retire:
             self._emit_event(
-                db, season_num, "driver_retirement",
+                db, season_num, EventType.DRIVER_RETIREMENT,
                 f"{driver.name} {driver.flag} retired from racing at age {driver.age} "
                 f"with a peak skill of {driver.top_skill_100}.",
             )
@@ -1006,11 +1010,11 @@ class WorldRunner:
                         score += 1
             r1, g1, b1 = team.rgb_primary
             r2, g2, b2 = sponsor.rgb_primary
-            if ((r1-r2)**2 + (g1-g2)**2 + (b1-b2)**2) ** 0.5 <= 80:
+            if ((r1-r2)**2 + (g1-g2)**2 + (b1-b2)**2) ** 0.5 <= SponsorConstants.COLOR_DISTANCE_THRESHOLD:
                 score += 1
             if team.engine and team.engine.rgb_primary:
                 r3, g3, b3 = team.engine.rgb_primary
-                if ((r3-r2)**2 + (g3-g2)**2 + (b3-b2)**2) ** 0.5 <= 80:
+                if ((r3-r2)**2 + (g3-g2)**2 + (b3-b2)**2) ** 0.5 <= SponsorConstants.COLOR_DISTANCE_THRESHOLD:
                     score += 1
             return score
 
@@ -1046,7 +1050,7 @@ class WorldRunner:
             tier_rank = {"large": 3, "medium": 2, "small": 1}
             sponsor_still_fits = tier_rank[expiring_sponsor.tier] <= tier_rank[max_eligible]
 
-            if sponsor_still_fits and random.random() < 0.75:
+            if sponsor_still_fits and random.random() < SponsorConstants.RENEWAL_PROBABILITY:
                 # Renew — extend contract without changing sponsor
                 new_contract = self._random_sponsor_contract(expiring_sponsor.tier)
                 team.sponsor_contract = new_contract
@@ -1054,13 +1058,13 @@ class WorldRunner:
                     "sponsor_contract": new_contract,
                 })
                 self._emit_event(
-                    db, season_num, "engine_deal",
+                    db, season_num, EventType.ENGINE_DEAL,
                     f"{team.name} renewed their sponsorship deal with {expiring_sponsor.name} "
                     f"for {new_contract} more year(s).",
                 )
             else:
                 self._emit_event(
-                    db, season_num, "engine_deal",
+                    db, season_num, EventType.ENGINE_DEAL,
                     f"{team.name}'s sponsorship deal with {expiring_sponsor.name} has ended.",
                 )
                 expiring_map[team] = expiring_sponsor
@@ -1117,7 +1121,7 @@ class WorldRunner:
                 "sponsor_contract": contract,
             })
             self._emit_event(
-                db, season_num, "engine_deal",
+                db, season_num, EventType.ENGINE_DEAL,
                 f"{team.name} signed a {contract}-year sponsorship deal with {chosen.name}.",
             )
 
@@ -1203,7 +1207,7 @@ class WorldRunner:
         engine_rival_threshold: dict = {}
         for team in self.teams:
             if team.owner_type == OwnerType.ENGINE_SUPPLIER and team.owner_engine is not None:
-                supplier_pos = team_to_pos.get(team, 999)
+                supplier_pos = team_to_pos.get(team, WorldConstants.FALLBACK_POSITION)
                 engine_rival_threshold[team.owner_engine] = max(3, supplier_pos - 1)
 
         # Everyone else picks best available engine
@@ -1211,7 +1215,7 @@ class WorldRunner:
             if team.engine is not None:
                 continue
             perception = self._compute_engine_perception(team)
-            rival_pos = team_to_pos.get(team, 999)
+            rival_pos = team_to_pos.get(team, WorldConstants.FALLBACK_POSITION)
             for engine in perception:
                 threshold = engine_rival_threshold.get(engine)
                 if (
@@ -1222,7 +1226,7 @@ class WorldRunner:
                     engine.add_team(team)
                     team.engine_contract = self._random_contract_years()
                     self._emit_event(
-                        db, season_num, "engine_deal",
+                        db, season_num, EventType.ENGINE_DEAL,
                         f"{team.name} signed a {team.engine_contract}-year engine deal with {engine.name} "
                         f"(power {int(engine.power * 100)}, reliability {int(engine.reliability * 100)}).",
                     )
@@ -1239,7 +1243,7 @@ class WorldRunner:
                     engine.add_team(team)
                     team.engine_contract = self._random_contract_years()
                     self._emit_event(
-                        db, season_num, "engine_deal",
+                        db, season_num, EventType.ENGINE_DEAL,
                         f"{team.name} signed a {team.engine_contract}-year engine deal with {engine.name} "
                         f"(power {int(engine.power * 100)}, reliability {int(engine.reliability * 100)}).",
                     )
@@ -1461,7 +1465,7 @@ class WorldRunner:
         else:
             owner_label = "private individual"
         self._emit_event(
-            db, season_num, "team_sale",
+            db, season_num, EventType.TEAM_SALE,
             f"{old_team.name} was acquired by {owner_label} and rebranded as {new_name}.",
         )
         self._sync_team_to_db(db, new_team)
@@ -1687,7 +1691,7 @@ class WorldRunner:
             )
             verb = "re-signed with" if stayed else "joined"
             self._emit_event(
-                db, season_num, "driver_transfer",
+                db, season_num, EventType.DRIVER_TRANSFER,
                 f"{driver.name} {driver.flag} (skill {driver.skill_100}) "
                 f"{verb} {team.name} on a {team.driver_contracts[seat_idx]}-year contract "
                 f"[{trait_note}].",
@@ -1736,29 +1740,29 @@ class WorldRunner:
         new_driver.db_id = db_driver.id
         self.drivers.append(new_driver)
         self._emit_event(
-            db, season_num, "driver_debut",
+            db, season_num, EventType.DRIVER_DEBUT,
             f"{new_driver.name} {new_driver.flag} (age {new_driver.age}) entered the driver pool.",
         )
 
     @staticmethod
     def _random_sponsor_contract(tier: str) -> int:
         if tier == "large":
-            return random.randint(4, 6)
+            return random.randint(SponsorConstants.CONTRACT_LARGE_MIN, SponsorConstants.CONTRACT_LARGE_MAX)
         elif tier == "medium":
-            return random.randint(3, 5)
+            return random.randint(SponsorConstants.CONTRACT_MEDIUM_MIN, SponsorConstants.CONTRACT_MEDIUM_MAX)
         else:
-            return random.randint(2, 4)
+            return random.randint(SponsorConstants.CONTRACT_SMALL_MIN, SponsorConstants.CONTRACT_SMALL_MAX)
 
     @staticmethod
     def _random_contract_years() -> int:
         r = random.random()
-        if r < 0.02:
+        if r < WorldConstants.CONTRACT_YEARS_PROB_2:
             return 2
-        elif r < 0.2:
+        elif r < WorldConstants.CONTRACT_YEARS_PROB_3:
             return 3
-        elif r < 0.8:
+        elif r < WorldConstants.CONTRACT_YEARS_PROB_4:
             return 4
-        elif r < 0.95:
+        elif r < WorldConstants.CONTRACT_YEARS_PROB_5:
             return 5
         else:
             return 6

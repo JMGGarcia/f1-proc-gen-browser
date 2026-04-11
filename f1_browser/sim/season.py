@@ -4,7 +4,7 @@ from typing import Dict, Iterator, List, Tuple
 
 from sim.constants import PointsSystem
 from sim.drivers import Driver
-from sim.race import Race, RacePerformance
+from sim.race import LapRace as Race, RacePerformance
 from sim.teams import Team
 from sim.tracks import Track
 
