@@ -63,6 +63,11 @@ class Team(Base):
     owner_sponsor_id = Column(Integer, ForeignKey("sponsors.id"), nullable=True)
     predecessor_team_id = Column(Integer, ForeignKey("teams.id"), nullable=True)
     finance_base = Column(Integer, nullable=True)  # 1–5; see TeamConstants.FINANCE_BASE_*
+    engine_id = Column(Integer, ForeignKey("engines.id"), nullable=True)
+    engine_contract = Column(Integer, nullable=True)
+    driver_contract_1 = Column(Integer, nullable=True)
+    driver_contract_2 = Column(Integer, nullable=True)
+    chassis = Column(Float, nullable=True)
 
 
 class Driver(Base):
@@ -80,6 +85,8 @@ class Driver(Base):
     loyalty = Column(Float, nullable=True)
     greed = Column(Float, nullable=True)
     ambition = Column(Float, nullable=True)
+    liked_tracks = Column(String, nullable=True)   # comma-separated track DB IDs
+    disliked_tracks = Column(String, nullable=True)  # comma-separated track DB IDs
 
 
 class Season(Base):
@@ -154,11 +161,14 @@ class TeamSeasonStats(Base):
     season_id = Column(Integer, ForeignKey("seasons.id"), nullable=False, index=True)
     engine_id = Column(Integer, ForeignKey("engines.id"), nullable=True)
     chassis = Column(Float, nullable=False)
-    direction_avg = Column(Float, nullable=False)
-    direction_development = Column(Float, nullable=True)
-    direction_scouting = Column(Float, nullable=True)
-    direction_eng_scouting = Column(Float, nullable=True)
-    direction_years = Column(Integer, nullable=True)
+    owner_chief_id  = Column(Integer, ForeignKey("team_chiefs.id"), nullable=True)
+    cto_chief_id    = Column(Integer, ForeignKey("team_chiefs.id"), nullable=True)
+    cmo_chief_id    = Column(Integer, ForeignKey("team_chiefs.id"), nullable=True)
+    cpo_chief_id    = Column(Integer, ForeignKey("team_chiefs.id"), nullable=True)
+    owner_skill     = Column(Integer, nullable=True)   # snapshot 0-90
+    cto_development = Column(Integer, nullable=True)   # snapshot 0-90
+    cto_eng_scouting= Column(Integer, nullable=True)   # snapshot 0-90
+    cpo_scouting    = Column(Integer, nullable=True)   # snapshot 0-90
     total_points = Column(Integer, nullable=False, default=0)
     championship_position = Column(Integer, nullable=True)
     sponsor_id = Column(Integer, ForeignKey("sponsors.id"), nullable=True)
@@ -182,6 +192,25 @@ class EngineSeasonStats(Base):
 
     engine = relationship("Engine")
     season = relationship("Season")
+
+
+class TeamChief(Base):
+    __tablename__ = "team_chiefs"
+
+    id               = Column(Integer, primary_key=True)
+    first_name       = Column(String, nullable=True)
+    last_name        = Column(String, nullable=False)
+    nationality      = Column(String, nullable=True)
+    role             = Column(String, nullable=False)   # "owner"|"cto"|"cmo"|"cpo"
+    age              = Column(Integer, nullable=False)
+    skill_primary    = Column(Integer, nullable=False)  # 0-90
+    skill_secondary  = Column(Integer, nullable=True)   # CTO only (eng_scouting)
+    team_id          = Column(Integer, ForeignKey("teams.id"), nullable=True)
+    contract_years   = Column(Integer, nullable=False)  # -1 = owner (no expiry)
+    retired          = Column(Boolean, default=False)
+    retired_season   = Column(Integer, nullable=True)
+
+    team = relationship("Team", foreign_keys=[team_id])
 
 
 class WorldMeta(Base):

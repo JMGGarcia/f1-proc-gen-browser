@@ -1,0 +1,96 @@
+{% extends "base.html" %}
+{% block title %}{{ chief.first_name }} {{ chief.last_name }} — F1 World{% endblock %}
+
+{% block content %}
+<div class="breadcrumb">
+  <a href="/staff">Staff</a><span>›</span>
+  {{ chief.first_name }} {{ chief.last_name }}
+</div>
+
+{% from "macros.html" import flag, team_badge %}
+
+<div class="page-header">
+  <h1>{{ flag(chief.nationality) }} {{ chief.first_name | upper }} {{ chief.last_name | upper }}</h1>
+  <div class="subtitle">
+    {{ chief.nationality }} · {{ chief.role_display }}
+    {% if chief.retired %} · Retired{% if chief.retired_season %} after Season {{ chief.retired_season }}{% endif %}{% endif %}
+  </div>
+</div>
+
+<div class="stat-row">
+  <div class="stat-card">
+    <div class="label">Role</div>
+    <div class="value">{{ chief.role_display }}</div>
+  </div>
+  <div class="stat-card">
+    <div class="label">Age</div>
+    <div class="value">{{ chief.age }}</div>
+  </div>
+  {% if chief.skill_label1 %}
+  <div class="stat-card" title="Primary skill (0–90)">
+    <div class="label">{{ chief.skill_label1 }}</div>
+    <div class="value" style="color:{{ stat_color(chief.skill_primary / 100) }}">{{ chief.skill_primary }}</div>
+  </div>
+  {% endif %}
+  {% if chief.skill_label2 and chief.skill_secondary is not none %}
+  <div class="stat-card" title="Secondary skill (0–90)">
+    <div class="label">{{ chief.skill_label2 }}</div>
+    <div class="value" style="color:{{ stat_color(chief.skill_secondary / 100) }}">{{ chief.skill_secondary }}</div>
+  </div>
+  {% endif %}
+  {% if career %}
+  <div class="stat-card">
+    <div class="label">Seasons on team</div>
+    <div class="value">{{ career | length }}</div>
+  </div>
+  {% endif %}
+</div>
+
+<h2>CAREER HISTORY</h2>
+{% if career %}
+<table class="data-table">
+  <thead>
+    <tr>
+      <th>Season</th>
+      <th>Team</th>
+      {% if chief.skill_label1 %}<th class="num">{{ chief.skill_label1 }}</th>{% endif %}
+      {% if chief.skill_label2 %}<th class="num">{{ chief.skill_label2 }}</th>{% endif %}
+      <th class="pos">Team Pos</th>
+      <th class="pts">Pts</th>
+    </tr>
+  </thead>
+  <tbody>
+    {% for entry in career %}
+    <tr>
+      <td>
+        {% if entry.season %}
+        <a href="/seasons/{{ entry.season.number }}">Season {{ entry.season.number }}</a>
+        {% else %}—{% endif %}
+      </td>
+      <td>
+        {% if entry.team %}{{ team_badge(entry.team) }}{% else %}—{% endif %}
+      </td>
+      {% if chief.skill_label1 %}
+      <td class="num">
+        {% if entry.skill1 is not none %}
+        <span style="color:{{ stat_color(entry.skill1 / 100) }}">{{ entry.skill1 }}</span>
+        {% else %}—{% endif %}
+      </td>
+      {% endif %}
+      {% if chief.skill_label2 %}
+      <td class="num">
+        {% if entry.skill2 is not none %}
+        <span style="color:{{ stat_color(entry.skill2 / 100) }}">{{ entry.skill2 }}</span>
+        {% else %}—{% endif %}
+      </td>
+      {% endif %}
+      <td class="pos">{{ entry.champ_pos if entry.champ_pos else '—' }}</td>
+      <td class="pts">{{ entry.points }}</td>
+    </tr>
+    {% endfor %}
+  </tbody>
+</table>
+{% else %}
+<p>No career data available.</p>
+{% endif %}
+{% endblock %}

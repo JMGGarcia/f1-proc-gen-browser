@@ -17,7 +17,7 @@ class DriverGenerator:
         self.names_dir = names_dir
         self.name_structure = self._load_names()
 
-    def generate_driver(self) -> Driver:
+    def generate_driver(self, track_ids: list = None) -> Driver:
         nat_code = self._select_weighted_country_for_driver()
         country = get_country(nat_code)
         first_name = random.choice(self.name_structure[nat_code]["first"])
@@ -34,6 +34,10 @@ class DriverGenerator:
             greed=random.random(),
             ambition=random.random(),
         )
+        if track_ids and len(track_ids) >= 6:
+            shuffled = random.sample(track_ids, 6)
+            d.liked_track_ids = shuffled[:3]
+            d.disliked_track_ids = shuffled[3:]
         self.current_id += 1
         return d
 
@@ -98,6 +102,8 @@ class Driver:
         self.greed = greed
         self.ambition = ambition
         self.team: Optional[object] = None  # set by Team
+        self.liked_track_ids: list = []
+        self.disliked_track_ids: list = []
     
     @property
     def nationality(self) -> str:

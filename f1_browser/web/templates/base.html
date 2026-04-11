@@ -247,14 +247,13 @@
     <a href="/drivers/retired">↳ Retired</a>
     <a href="/teams">Teams</a>
     <a href="/teams/former">↳ Former</a>
+    <a href="/staff">Staff</a>
+    <a href="/staff/retired">↳ Retired</a>
     <a href="/engines">Engines</a>
     <a href="/sponsors">Sponsors</a>
     <a href="/events">Events</a>
     <a href="/stats">Statistics</a>
     {% set ctx = nav_ctx() %}
-    {% if ctx.live_race_url %}
-    <a href="/" style="color:var(--accent);font-weight:bold">● {{ ctx.live_race_name }}</a>
-    {% endif %}
     {% if ctx.nav_champion %}
     <div class="nav-champion">
       <div class="label">Season {{ ctx.nav_season }} Champion</div>

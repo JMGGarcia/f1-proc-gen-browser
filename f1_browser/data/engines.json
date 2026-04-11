@@ -1,0 +1,20 @@
+[
+  {"name": "SEAT",       "color_primary": "#CC0000", "color_secondary": "#303030", "nationality": "ES"},
+  {"name": "Chevrolet",  "color_primary": "#FFD700", "color_secondary": "#303030", "nationality": "US"},
+  {"name": "Jaguar",     "color_primary": "#006400", "color_secondary": "#FFD700", "nationality": "EN"},
+  {"name": "Audi",       "color_primary": "#303030", "color_secondary": "#FFFFFF", "nationality": "GE"},
+  {"name": "Toyota",     "color_primary": "#FFFFFF", "color_secondary": "#CC0000", "nationality": "JP"},
+  {"name": "Ford",       "color_primary": "#003087", "color_secondary": "#FFFFFF", "nationality": "US"},
+  {"name": "Hyundai",    "color_primary": "#FFFFFF", "color_secondary": "#002C5F", "nationality": "KR"},
+  {"name": "BMW",        "color_primary": "#0066CC", "color_secondary": "#FFFFFF", "nationality": "GE"},
+  {"name": "Honda",      "color_primary": "#FFFFFF", "color_secondary": "#1B1B1B", "nationality": "JP"},
+  {"name": "Renault",    "color_primary": "#FFE000", "color_secondary": "#000000", "nationality": "FR"},
+  {"name": "Mercedes",   "color_primary": "#C0C0C0", "color_secondary": "#111111", "nationality": "GE"},
+  {"name": "Ferrari",    "color_primary": "#DC0000", "color_secondary": "#FFD700", "nationality": "IT"},
+  {"name": "Porsche",    "color_primary": "#737373", "color_secondary": "#000000", "nationality": "GE"},
+  {"name": "Alfa Romeo", "color_primary": "#FFFFFF", "color_secondary": "#C8102E", "nationality": "IT"},
+  {"name": "Peugeot",    "color_primary": "#003189", "color_secondary": "#C0C0C0", "nationality": "FR"},
+  {"name": "Nissan",     "color_primary": "#C3002F", "color_secondary": "#C0C0C0", "nationality": "JP"},
+  {"name": "Subaru",     "color_primary": "#013A8A", "color_secondary": "#FFD700", "nationality": "JP"},
+  {"name": "Mazda",      "color_primary": "#D61621", "color_secondary": "#FFFFFF", "nationality": "JP"}
+]

@@ -2,7 +2,7 @@ from fastapi import APIRouter, Depends, HTTPException, Request
 from sqlalchemy import func
 from sqlalchemy.orm import Session
 
-from db.models import Driver, DriverSeasonStats, Engine, EngineSeasonStats, Season, Sponsor, Team, TeamSeasonStats
+from db.models import Driver, DriverSeasonStats, Engine, EngineSeasonStats, Season, Sponsor, Team, TeamChief, TeamSeasonStats
 from db.session import get_db_session
 from sim.flags import NATIONALITY_FLAGS
 from web.templates_env import templates
@@ -41,19 +41,42 @@ def teams_list(request: Request, db: Session = Depends(get_db_session)):
     team_ids = [t.id for t in active_teams]
     owner_engine_ids = list({t.owner_engine_id for t in active_teams if t.owner_engine_id})
     owner_sponsor_ids = list({t.owner_sponsor_id for t in active_teams if t.owner_sponsor_id})
-    all_engine_ids = list(set(engine_ids) | set(owner_engine_ids))
-    all_sponsor_ids = list(set(sponsor_ids) | set(owner_sponsor_ids))
+    fallback_engine_ids = list({t.engine_id for t in active_teams if t.engine_id})
+    fallback_sponsor_ids = list({t.sponsor_id for t in active_teams if t.sponsor_id})
+    all_engine_ids = list(set(engine_ids) | set(owner_engine_ids) | set(fallback_engine_ids))
+    all_sponsor_ids = list(set(sponsor_ids) | set(owner_sponsor_ids) | set(fallback_sponsor_ids))
 
     engines_by_id = {e.id: e for e in db.query(Engine).filter(Engine.id.in_(all_engine_ids)).all()}
     sponsors_by_id = {s.id: s for s in db.query(Sponsor).filter(Sponsor.id.in_(all_sponsor_ids)).all()}
 
+    # Batch-fetch current CTOs for teams that have no season stats (new teams)
+    teams_without_stats = {t.id for t in active_teams if t.id not in latest_tss_by_team}
+    cto_by_team: dict = {}
+    if teams_without_stats:
+        cto_rows = (
+            db.query(TeamChief)
+            .filter(TeamChief.team_id.in_(teams_without_stats), TeamChief.role == "cto", TeamChief.retired == False)
+            .all()
+        )
+        cto_by_team = {c.team_id: c for c in cto_rows}
+
     for team in active_teams:
         latest = latest_tss_by_team.get(team.id)
         team.latest_stats = latest
-        team.current_engine = engines_by_id.get(latest.engine_id) if latest and latest.engine_id else None
-        team.current_sponsor = sponsors_by_id.get(latest.sponsor_id) if latest and latest.sponsor_id else None
+        engine_id = (latest.engine_id if latest and latest.engine_id else team.engine_id)
+        team.current_engine = engines_by_id.get(engine_id) if engine_id else None
+        sponsor_id = (latest.sponsor_id if latest and latest.sponsor_id else team.sponsor_id)
+        team.current_sponsor = sponsors_by_id.get(sponsor_id) if sponsor_id else None
         team.owner_engine_obj = engines_by_id.get(team.owner_engine_id) if team.owner_engine_id else None
         team.owner_sponsor_obj = sponsors_by_id.get(team.owner_sponsor_id) if team.owner_sponsor_id else None
+        # Fallback chassis and management for new teams without season stats
+        if not latest:
+            team.fallback_chassis = team.chassis
+            cto = cto_by_team.get(team.id)
+            team.fallback_mgmt = cto.skill_primary if cto else None
+        else:
+            team.fallback_chassis = None
+            team.fallback_mgmt = None
 
     return templates.TemplateResponse(request, "teams_list.html", {
         "teams": active_teams,
@@ -147,7 +170,7 @@ def team_detail(team_id: int, request: Request, db: Session = Depends(get_db_ses
         curr_drivers_by_id = {
             d.id: d for d in
             db.query(Driver)
-            .filter(Driver.id.in_(curr_driver_ids), Driver.retired == False)
+            .filter(Driver.id.in_(curr_driver_ids))
             .all()
         }
         for cs in current_stats:
@@ -201,4 +224,5 @@ def team_detail(team_id: int, request: Request, db: Session = Depends(get_db_ses
         "latest_stats": latest_stats,
         "finance_level": finance_level,
         "finance_base": team.finance_base,
+        "chiefs_by_role": {c.role: c for c in db.query(TeamChief).filter_by(team_id=team_id, retired=False).all()},
     })

@@ -1,0 +1,1213 @@
+[
+  {
+    "name": "Red Bull",
+    "tier": "large",
+    "color_primary": "#1C2E6E",
+    "color_secondary": "#CC2229",
+    "nationality": "AT"
+  },
+  {
+    "name": "Shell",
+    "tier": "large",
+    "color_primary": "#DD1D21",
+    "color_secondary": "#FBC817",
+    "nationality": "NL"
+  },
+  {
+    "name": "Aramco",
+    "tier": "large",
+    "color_primary": "#008A3D",
+    "color_secondary": "#F0F0F0",
+    "nationality": "SA"
+  },
+  {
+    "name": "Qatar Airways",
+    "tier": "large",
+    "color_primary": "#5C0632",
+    "color_secondary": "#F0F0F0",
+    "nationality": "QA"
+  },
+  {
+    "name": "Rolex",
+    "tier": "large",
+    "color_primary": "#006039",
+    "color_secondary": "#C9A84C",
+    "nationality": "CH"
+  },
+  {
+    "name": "Heineken",
+    "tier": "large",
+    "color_primary": "#1A5C28",
+    "color_secondary": "#F0F0F0",
+    "nationality": "NL"
+  },
+  {
+    "name": "Oracle",
+    "tier": "large",
+    "color_primary": "#C74634",
+    "color_secondary": "#F0F0F0",
+    "nationality": "US"
+  },
+  {
+    "name": "AWS",
+    "tier": "large",
+    "color_primary": "#232F3E",
+    "color_secondary": "#FF9900",
+    "nationality": "US"
+  },
+  {
+    "name": "Etihad Airways",
+    "tier": "large",
+    "color_primary": "#C5A028",
+    "color_secondary": "#1C1C1C",
+    "nationality": "AE"
+  },
+  {
+    "name": "Emirates",
+    "tier": "large",
+    "color_primary": "#D71A21",
+    "color_secondary": "#C5A028",
+    "nationality": "AE"
+  },
+  {
+    "name": "Qualcomm",
+    "tier": "large",
+    "color_primary": "#3253DC",
+    "color_secondary": "#F0F0F0",
+    "nationality": "US"
+  },
+  {
+    "name": "Visa",
+    "tier": "large",
+    "color_primary": "#1A1F71",
+    "color_secondary": "#F7B600",
+    "nationality": "US"
+  },
+  {
+    "name": "Mastercard",
+    "tier": "large",
+    "color_primary": "#EB001B",
+    "color_secondary": "#F79E1B",
+    "nationality": "US"
+  },
+  {
+    "name": "Petronas",
+    "tier": "large",
+    "color_primary": "#00A19B",
+    "color_secondary": "#111111",
+    "nationality": null
+  },
+  {
+    "name": "Louis Vuitton",
+    "tier": "large",
+    "color_primary": "#1A1A1A",
+    "color_secondary": "#C9A84C",
+    "nationality": "FR"
+  },
+  {
+    "name": "Samsung",
+    "tier": "large",
+    "color_primary": "#1428A0",
+    "color_secondary": "#F0F0F0",
+    "nationality": "KR"
+  },
+  {
+    "name": "Lucky Strike",
+    "tier": "large",
+    "color_primary": "#CC0000",
+    "color_secondary": "#F5DEB3",
+    "nationality": "US"
+  },
+  {
+    "name": "Marlboro",
+    "tier": "large",
+    "color_primary": "#FF0000",
+    "color_secondary": "#FFFFFF",
+    "nationality": "US"
+  },
+  {
+    "name": "Phillip Morris",
+    "tier": "large",
+    "color_primary": "#1E90FF",
+    "color_secondary": "#FFFFFF",
+    "nationality": "US"
+  },
+  {
+    "name": "Chesterfield",
+    "tier": "large",
+    "color_primary": "#FF8700",
+    "color_secondary": "#000000",
+    "nationality": "US"
+  },
+  {
+    "name": "Camel",
+    "tier": "large",
+    "color_primary": "#D4AF37",
+    "color_secondary": "#003087",
+    "nationality": "US"
+  },
+  {
+    "name": "Newport",
+    "tier": "large",
+    "color_primary": "#20B2AA",
+    "color_secondary": "#000000",
+    "nationality": "US"
+  },
+  {
+    "name": "Winston",
+    "tier": "large",
+    "color_primary": "#00008B",
+    "color_secondary": "#FFFFFF",
+    "nationality": "US"
+  },
+  {
+    "name": "West",
+    "tier": "large",
+    "color_primary": "#8B0000",
+    "color_secondary": "#C0C0C0",
+    "nationality": "GE"
+  },
+  {
+    "name": "Rothmans",
+    "tier": "large",
+    "color_primary": "#00005F",
+    "color_secondary": "#FFD700",
+    "nationality": "EN"
+  },
+  {
+    "name": "Pall Mall",
+    "tier": "large",
+    "color_primary": "#006400",
+    "color_secondary": "#FFFFFF",
+    "nationality": "EN"
+  },
+  {
+    "name": "Microsoft",
+    "tier": "large",
+    "color_primary": "#0078D4",
+    "color_secondary": "#F0F0F0",
+    "nationality": "US"
+  },
+  {
+    "name": "Google",
+    "tier": "large",
+    "color_primary": "#1A73E8",
+    "color_secondary": "#FBBC04",
+    "nationality": "US"
+  },
+  {
+    "name": "Alibaba",
+    "tier": "large",
+    "color_primary": "#FF6B6B",
+    "color_secondary": "#F0F0F0",
+    "nationality": "CN"
+  },
+  {
+    "name": "Nestle",
+    "tier": "large",
+    "color_primary": "#8B4513",
+    "color_secondary": "#F0F0F0",
+    "nationality": "CH"
+  },
+  {
+    "name": "Huawei",
+    "tier": "large",
+    "color_primary": "#CF0A2C",
+    "color_secondary": "#F0F0F0",
+    "nationality": "CN"
+  },
+  {
+    "name": "Santander",
+    "tier": "medium",
+    "color_primary": "#EC0000",
+    "color_secondary": "#F0F0F0",
+    "nationality": "ES"
+  },
+  {
+    "name": "Xbox",
+    "tier": "medium",
+    "color_primary": "#107C10",
+    "color_secondary": "#F0F0F0",
+    "nationality": "US"
+  },
+  {
+    "name": "Castrol",
+    "tier": "medium",
+    "color_primary": "#006135",
+    "color_secondary": "#D40000",
+    "nationality": "EN"
+  },
+  {
+    "name": "TAG Heuer",
+    "tier": "medium",
+    "color_primary": "#0D0D0D",
+    "color_secondary": "#CA0814",
+    "nationality": "CH"
+  },
+  {
+    "name": "Vodafone",
+    "tier": "medium",
+    "color_primary": "#E60000",
+    "color_secondary": "#F0F0F0",
+    "nationality": "EN"
+  },
+  {
+    "name": "DHL",
+    "tier": "medium",
+    "color_primary": "#FFCC00",
+    "color_secondary": "#D40511",
+    "nationality": "GE"
+  },
+  {
+    "name": "UBS",
+    "tier": "medium",
+    "color_primary": "#E30613",
+    "color_secondary": "#1A1A1A",
+    "nationality": "CH"
+  },
+  {
+    "name": "Martini",
+    "tier": "medium",
+    "color_primary": "#E31836",
+    "color_secondary": "#F0F0F0",
+    "nationality": "IT"
+  },
+  {
+    "name": "Monster Energy",
+    "tier": "medium",
+    "color_primary": "#0D0D0D",
+    "color_secondary": "#3DD300",
+    "nationality": "US"
+  },
+  {
+    "name": "Telefonica",
+    "tier": "medium",
+    "color_primary": "#0D3580",
+    "color_secondary": "#F0F0F0",
+    "nationality": "ES"
+  },
+  {
+    "name": "Mobil 1",
+    "tier": "medium",
+    "color_primary": "#E2231A",
+    "color_secondary": "#003087",
+    "nationality": "US"
+  },
+  {
+    "name": "Hugo Boss",
+    "tier": "medium",
+    "color_primary": "#1A1A1A",
+    "color_secondary": "#C9A84C",
+    "nationality": "GE"
+  },
+  {
+    "name": "Johnnie Walker",
+    "tier": "medium",
+    "color_primary": "#000000",
+    "color_secondary": "#C9A84C",
+    "nationality": "EN"
+  },
+  {
+    "name": "ING",
+    "tier": "medium",
+    "color_primary": "#FF6200",
+    "color_secondary": "#F0F0F0",
+    "nationality": "NL"
+  },
+  {
+    "name": "HSBC",
+    "tier": "medium",
+    "color_primary": "#DB0011",
+    "color_secondary": "#F0F0F0",
+    "nationality": "EN"
+  },
+  {
+    "name": "SAP",
+    "tier": "medium",
+    "color_primary": "#1C3557",
+    "color_secondary": "#F0AB00",
+    "nationality": "GE"
+  },
+  {
+    "name": "SoftBank",
+    "tier": "medium",
+    "color_primary": "#CC0000",
+    "color_secondary": "#F0F0F0",
+    "nationality": "JP"
+  },
+  {
+    "name": "Richard Mille",
+    "tier": "medium",
+    "color_primary": "#0D0D0D",
+    "color_secondary": "#CA0814",
+    "nationality": "FR"
+  },
+  {
+    "name": "Puma",
+    "tier": "medium",
+    "color_primary": "#1A1A1A",
+    "color_secondary": "#F0F0F0",
+    "nationality": "GE"
+  },
+  {
+    "name": "Tommy Hilfiger",
+    "tier": "medium",
+    "color_primary": "#003087",
+    "color_secondary": "#CC0000",
+    "nationality": "US"
+  },
+  {
+    "name": "Hackett",
+    "tier": "medium",
+    "color_primary": "#1C2D5E",
+    "color_secondary": "#F0F0F0",
+    "nationality": "EN"
+  },
+  {
+    "name": "Claro",
+    "tier": "medium",
+    "color_primary": "#DA291C",
+    "color_secondary": "#F0F0F0",
+    "nationality": "MX"
+  },
+  {
+    "name": "Telmex",
+    "tier": "medium",
+    "color_primary": "#005DA8",
+    "color_secondary": "#F0F0F0",
+    "nationality": "MX"
+  },
+  {
+    "name": "Singha",
+    "tier": "medium",
+    "color_primary": "#003087",
+    "color_secondary": "#FFD700",
+    "nationality": null
+  },
+  {
+    "name": "Rakuten",
+    "tier": "medium",
+    "color_primary": "#BF0000",
+    "color_secondary": "#F0F0F0",
+    "nationality": "JP"
+  },
+  {
+    "name": "NetApp",
+    "tier": "medium",
+    "color_primary": "#005073",
+    "color_secondary": "#F0F0F0",
+    "nationality": "US"
+  },
+  {
+    "name": "BWT",
+    "tier": "medium",
+    "color_primary": "#E91E8C",
+    "color_secondary": "#F0F0F0",
+    "nationality": "AT"
+  },
+  {
+    "name": "Unilever",
+    "tier": "medium",
+    "color_primary": "#003087",
+    "color_secondary": "#F0F0F0",
+    "nationality": "NL"
+  },
+  {
+    "name": "NEC",
+    "tier": "medium",
+    "color_primary": "#003087",
+    "color_secondary": "#F0F0F0",
+    "nationality": "JP"
+  },
+  {
+    "name": "Accenture",
+    "tier": "medium",
+    "color_primary": "#A100FF",
+    "color_secondary": "#F0F0F0",
+    "nationality": "US"
+  },
+  {
+    "name": "Capgemini",
+    "tier": "medium",
+    "color_primary": "#0070AD",
+    "color_secondary": "#F0F0F0",
+    "nationality": "FR"
+  },
+  {
+    "name": "Tata",
+    "tier": "medium",
+    "color_primary": "#003087",
+    "color_secondary": "#F0F0F0",
+    "nationality": "IN"
+  },
+  {
+    "name": "Gulf Oil",
+    "tier": "medium",
+    "color_primary": "#F47920",
+    "color_secondary": "#003087",
+    "nationality": "US"
+  },
+  {
+    "name": "Esso",
+    "tier": "medium",
+    "color_primary": "#CC0000",
+    "color_secondary": "#003087",
+    "nationality": "US"
+  },
+  {
+    "name": "Randstad",
+    "tier": "medium",
+    "color_primary": "#2175D9",
+    "color_secondary": "#F0F0F0",
+    "nationality": "NL"
+  },
+  {
+    "name": "Nvidia",
+    "tier": "medium",
+    "color_primary": "#76B900",
+    "color_secondary": "#1A1A1A",
+    "nationality": "US"
+  },
+  {
+    "name": "Acronis",
+    "tier": "medium",
+    "color_primary": "#CF0A2C",
+    "color_secondary": "#F0F0F0",
+    "nationality": "CH"
+  },
+  {
+    "name": "MSC Cruises",
+    "tier": "medium",
+    "color_primary": "#003A70",
+    "color_secondary": "#F0F0F0",
+    "nationality": "CH"
+  },
+  {
+    "name": "Crowdstrike",
+    "tier": "medium",
+    "color_primary": "#E3172D",
+    "color_secondary": "#F0F0F0",
+    "nationality": "US"
+  },
+  {
+    "name": "BP",
+    "tier": "medium",
+    "color_primary": "#009A44",
+    "color_secondary": "#FFD100",
+    "nationality": "EN"
+  },
+  {
+    "name": "Total",
+    "tier": "medium",
+    "color_primary": "#C8102E",
+    "color_secondary": "#F08000",
+    "nationality": "FR"
+  },
+  {
+    "name": "HP",
+    "tier": "medium",
+    "color_primary": "#0171AD",
+    "color_secondary": "#F0F0F0",
+    "nationality": "US"
+  },
+  {
+    "name": "Salesforce",
+    "tier": "medium",
+    "color_primary": "#1798C1",
+    "color_secondary": "#F0F0F0",
+    "nationality": "US"
+  },
+  {
+    "name": "Sony",
+    "tier": "medium",
+    "color_primary": "#1A1A1A",
+    "color_secondary": "#F0F0F0",
+    "nationality": "JP"
+  },
+  {
+    "name": "Panasonic",
+    "tier": "medium",
+    "color_primary": "#003087",
+    "color_secondary": "#F0F0F0",
+    "nationality": "JP"
+  },
+  {
+    "name": "Toshiba",
+    "tier": "medium",
+    "color_primary": "#CC0000",
+    "color_secondary": "#F0F0F0",
+    "nationality": "JP"
+  },
+  {
+    "name": "Intel",
+    "tier": "medium",
+    "color_primary": "#0071C5",
+    "color_secondary": "#F0F0F0",
+    "nationality": "US"
+  },
+  {
+    "name": "Cisco",
+    "tier": "medium",
+    "color_primary": "#1BA0D7",
+    "color_secondary": "#F0F0F0",
+    "nationality": "US"
+  },
+  {
+    "name": "Qualys",
+    "tier": "medium",
+    "color_primary": "#E4002B",
+    "color_secondary": "#F0F0F0",
+    "nationality": "US"
+  },
+  {
+    "name": "Databricks",
+    "tier": "medium",
+    "color_primary": "#FF3621",
+    "color_secondary": "#F0F0F0",
+    "nationality": "US"
+  },
+  {
+    "name": "Benetton",
+    "tier": "medium",
+    "color_primary": "#00A651",
+    "color_secondary": "#F0F0F0",
+    "nationality": "IT"
+  },
+  {
+    "name": "PlayStation",
+    "tier": "medium",
+    "color_primary": "#003087",
+    "color_secondary": "#F0F0F0",
+    "nationality": "JP"
+  },
+  {
+    "name": "Elf",
+    "tier": "medium",
+    "color_primary": "#0055A4",
+    "color_secondary": "#FFD700",
+    "nationality": "FR"
+  },
+  {
+    "name": "Agip",
+    "tier": "medium",
+    "color_primary": "#CC0000",
+    "color_secondary": "#FFD700",
+    "nationality": "IT"
+  },
+  {
+    "name": "Valvoline",
+    "tier": "medium",
+    "color_primary": "#CC0000",
+    "color_secondary": "#F0F0F0",
+    "nationality": "US"
+  },
+  {
+    "name": "Tencent",
+    "tier": "medium",
+    "color_primary": "#0084FF",
+    "color_secondary": "#F0F0F0",
+    "nationality": "CN"
+  },
+  {
+    "name": "BYD",
+    "tier": "medium",
+    "color_primary": "#CC0000",
+    "color_secondary": "#FFFFFF",
+    "nationality": "CN"
+  },
+  {
+    "name": "Roche",
+    "tier": "medium",
+    "color_primary": "#CC0000",
+    "color_secondary": "#F0F0F0",
+    "nationality": "CH"
+  },
+  {
+    "name": "Swatch",
+    "tier": "medium",
+    "color_primary": "#1A1A1A",
+    "color_secondary": "#C9A84C",
+    "nationality": "CH"
+  },
+  {
+    "name": "ABB",
+    "tier": "medium",
+    "color_primary": "#003087",
+    "color_secondary": "#FFD700",
+    "nationality": "CH"
+  },
+  {
+    "name": "Novartis",
+    "tier": "medium",
+    "color_primary": "#003087",
+    "color_secondary": "#F0F0F0",
+    "nationality": "CH"
+  },
+  {
+    "name": "Bombardier",
+    "tier": "medium",
+    "color_primary": "#003087",
+    "color_secondary": "#FFD700",
+    "nationality": "CA"
+  },
+  {
+    "name": "Crypto.com",
+    "tier": "small",
+    "color_primary": "#002D74",
+    "color_secondary": "#F0F0F0",
+    "nationality": null
+  },
+  {
+    "name": "Binance",
+    "tier": "small",
+    "color_primary": "#F3BA2F",
+    "color_secondary": "#1A1A1A",
+    "nationality": null
+  },
+  {
+    "name": "Lego",
+    "tier": "small",
+    "color_primary": "#D01012",
+    "color_secondary": "#FFD700",
+    "nationality": "DK"
+  },
+  {
+    "name": "Lenovo",
+    "tier": "small",
+    "color_primary": "#E2231A",
+    "color_secondary": "#F0F0F0",
+    "nationality": "CN"
+  },
+  {
+    "name": "Moët",
+    "tier": "small",
+    "color_primary": "#C6A84B",
+    "color_secondary": "#1A1A1A",
+    "nationality": "FR"
+  },
+  {
+    "name": "Bridgestone",
+    "tier": "small",
+    "color_primary": "#CC0000",
+    "color_secondary": "#1A1A1A",
+    "nationality": "JP"
+  },
+  {
+    "name": "Brembo",
+    "tier": "small",
+    "color_primary": "#E32119",
+    "color_secondary": "#F0F0F0",
+    "nationality": "IT"
+  },
+  {
+    "name": "Corona",
+    "tier": "small",
+    "color_primary": "#003087",
+    "color_secondary": "#FFCC00",
+    "nationality": "MX"
+  },
+  {
+    "name": "Lucozade",
+    "tier": "small",
+    "color_primary": "#FF7400",
+    "color_secondary": "#F0F0F0",
+    "nationality": "EN"
+  },
+  {
+    "name": "NGK",
+    "tier": "small",
+    "color_primary": "#8B0000",
+    "color_secondary": "#C9A84C",
+    "nationality": "JP"
+  },
+  {
+    "name": "Singtel",
+    "tier": "small",
+    "color_primary": "#CC0033",
+    "color_secondary": "#F0F0F0",
+    "nationality": null
+  },
+  {
+    "name": "Jack Daniel's",
+    "tier": "small",
+    "color_primary": "#1A1A1A",
+    "color_secondary": "#F0F0F0",
+    "nationality": "US"
+  },
+  {
+    "name": "Schweppes",
+    "tier": "small",
+    "color_primary": "#F5C400",
+    "color_secondary": "#1A1A1A",
+    "nationality": "EN"
+  },
+  {
+    "name": "Infosys",
+    "tier": "small",
+    "color_primary": "#006DAA",
+    "color_secondary": "#F0F0F0",
+    "nationality": "IN"
+  },
+  {
+    "name": "Cognizant",
+    "tier": "small",
+    "color_primary": "#0033A0",
+    "color_secondary": "#F0F0F0",
+    "nationality": "US"
+  },
+  {
+    "name": "Dell",
+    "tier": "small",
+    "color_primary": "#007DB8",
+    "color_secondary": "#F0F0F0",
+    "nationality": "US"
+  },
+  {
+    "name": "Burn",
+    "tier": "small",
+    "color_primary": "#1A1A1A",
+    "color_secondary": "#FF4400",
+    "nationality": null
+  },
+  {
+    "name": "Credit Suisse",
+    "tier": "small",
+    "color_primary": "#0C2C7C",
+    "color_secondary": "#F0F0F0",
+    "nationality": "CH"
+  },
+  {
+    "name": "Pirtek",
+    "tier": "small",
+    "color_primary": "#E4002B",
+    "color_secondary": "#F0F0F0",
+    "nationality": "AU"
+  },
+  {
+    "name": "OMP",
+    "tier": "small",
+    "color_primary": "#1A1A1A",
+    "color_secondary": "#F0F0F0",
+    "nationality": "IT"
+  },
+  {
+    "name": "Sparco",
+    "tier": "small",
+    "color_primary": "#E4002B",
+    "color_secondary": "#F0F0F0",
+    "nationality": "IT"
+  },
+  {
+    "name": "Alpinestars",
+    "tier": "small",
+    "color_primary": "#1A1A1A",
+    "color_secondary": "#CC0000",
+    "nationality": "IT"
+  },
+  {
+    "name": "Bell Helmets",
+    "tier": "small",
+    "color_primary": "#1C3557",
+    "color_secondary": "#F0F0F0",
+    "nationality": "US"
+  },
+  {
+    "name": "Arai",
+    "tier": "small",
+    "color_primary": "#CC0000",
+    "color_secondary": "#F0F0F0",
+    "nationality": "JP"
+  },
+  {
+    "name": "Shoei",
+    "tier": "small",
+    "color_primary": "#1A1A1A",
+    "color_secondary": "#FF6600",
+    "nationality": "JP"
+  },
+  {
+    "name": "Sabelt",
+    "tier": "small",
+    "color_primary": "#CC0000",
+    "color_secondary": "#F0F0F0",
+    "nationality": "IT"
+  },
+  {
+    "name": "Recaro",
+    "tier": "small",
+    "color_primary": "#1A1A1A",
+    "color_secondary": "#CC0000",
+    "nationality": "GE"
+  },
+  {
+    "name": "Dunlop",
+    "tier": "small",
+    "color_primary": "#FFD700",
+    "color_secondary": "#1A1A1A",
+    "nationality": "EN"
+  },
+  {
+    "name": "Yokohama",
+    "tier": "small",
+    "color_primary": "#003087",
+    "color_secondary": "#F0F0F0",
+    "nationality": "JP"
+  },
+  {
+    "name": "Federal Mogul",
+    "tier": "small",
+    "color_primary": "#003087",
+    "color_secondary": "#F0F0F0",
+    "nationality": "US"
+  },
+  {
+    "name": "Gates",
+    "tier": "small",
+    "color_primary": "#CC0000",
+    "color_secondary": "#F0F0F0",
+    "nationality": "US"
+  },
+  {
+    "name": "SKF",
+    "tier": "small",
+    "color_primary": "#003087",
+    "color_secondary": "#FFD700",
+    "nationality": "SE"
+  },
+  {
+    "name": "Mahle",
+    "tier": "small",
+    "color_primary": "#CC0000",
+    "color_secondary": "#F0F0F0",
+    "nationality": "GE"
+  },
+  {
+    "name": "Bosch",
+    "tier": "small",
+    "color_primary": "#CC0000",
+    "color_secondary": "#F0F0F0",
+    "nationality": "GE"
+  },
+  {
+    "name": "Continental",
+    "tier": "small",
+    "color_primary": "#FFA500",
+    "color_secondary": "#1A1A1A",
+    "nationality": "GE"
+  },
+  {
+    "name": "ZF",
+    "tier": "small",
+    "color_primary": "#003087",
+    "color_secondary": "#F0F0F0",
+    "nationality": "GE"
+  },
+  {
+    "name": "Hankook",
+    "tier": "small",
+    "color_primary": "#FF6600",
+    "color_secondary": "#1A1A1A",
+    "nationality": "KR"
+  },
+  {
+    "name": "Delphi",
+    "tier": "small",
+    "color_primary": "#003087",
+    "color_secondary": "#F0F0F0",
+    "nationality": "US"
+  },
+  {
+    "name": "Denso",
+    "tier": "small",
+    "color_primary": "#003087",
+    "color_secondary": "#F0F0F0",
+    "nationality": "JP"
+  },
+  {
+    "name": "Enkei",
+    "tier": "small",
+    "color_primary": "#1A1A1A",
+    "color_secondary": "#C9A84C",
+    "nationality": "JP"
+  },
+  {
+    "name": "OZ Racing",
+    "tier": "small",
+    "color_primary": "#CC0000",
+    "color_secondary": "#F0F0F0",
+    "nationality": "IT"
+  },
+  {
+    "name": "Sparkling Hill",
+    "tier": "small",
+    "color_primary": "#4A90D9",
+    "color_secondary": "#F0F0F0",
+    "nationality": null
+  },
+  {
+    "name": "Nespresso",
+    "tier": "small",
+    "color_primary": "#1A1A1A",
+    "color_secondary": "#8B0000",
+    "nationality": "CH"
+  },
+  {
+    "name": "Lavazza",
+    "tier": "small",
+    "color_primary": "#003087",
+    "color_secondary": "#FFD700",
+    "nationality": "IT"
+  },
+  {
+    "name": "Julius Baer",
+    "tier": "small",
+    "color_primary": "#003087",
+    "color_secondary": "#C9A84C",
+    "nationality": "CH"
+  },
+  {
+    "name": "Banque de France",
+    "tier": "small",
+    "color_primary": "#003087",
+    "color_secondary": "#C9A84C",
+    "nationality": "FR"
+  },
+  {
+    "name": "ANZ",
+    "tier": "small",
+    "color_primary": "#007DBA",
+    "color_secondary": "#F0F0F0",
+    "nationality": "AU"
+  },
+  {
+    "name": "Chandon",
+    "tier": "small",
+    "color_primary": "#1A1A1A",
+    "color_secondary": "#C9A84C",
+    "nationality": "FR"
+  },
+  {
+    "name": "Oakley",
+    "tier": "small",
+    "color_primary": "#1A1A1A",
+    "color_secondary": "#FF6600",
+    "nationality": "US"
+  },
+  {
+    "name": "Ray-Ban",
+    "tier": "small",
+    "color_primary": "#1A1A1A",
+    "color_secondary": "#C9A84C",
+    "nationality": "IT"
+  },
+  {
+    "name": "Fossil",
+    "tier": "small",
+    "color_primary": "#8B6914",
+    "color_secondary": "#F0F0F0",
+    "nationality": "US"
+  },
+  {
+    "name": "Tissot",
+    "tier": "small",
+    "color_primary": "#CC0000",
+    "color_secondary": "#F0F0F0",
+    "nationality": "CH"
+  },
+  {
+    "name": "Hublot",
+    "tier": "small",
+    "color_primary": "#1A1A1A",
+    "color_secondary": "#C9A84C",
+    "nationality": "CH"
+  },
+  {
+    "name": "IWC",
+    "tier": "small",
+    "color_primary": "#1A1A1A",
+    "color_secondary": "#C9A84C",
+    "nationality": "CH"
+  },
+  {
+    "name": "Omega",
+    "tier": "small",
+    "color_primary": "#003087",
+    "color_secondary": "#C9A84C",
+    "nationality": "CH"
+  },
+  {
+    "name": "Casio",
+    "tier": "small",
+    "color_primary": "#003087",
+    "color_secondary": "#F0F0F0",
+    "nationality": "JP"
+  },
+  {
+    "name": "Seiko",
+    "tier": "small",
+    "color_primary": "#1A1A1A",
+    "color_secondary": "#FFD700",
+    "nationality": "JP"
+  },
+  {
+    "name": "GoPro",
+    "tier": "small",
+    "color_primary": "#1A1A1A",
+    "color_secondary": "#00AEEF",
+    "nationality": "US"
+  },
+  {
+    "name": "Epson",
+    "tier": "small",
+    "color_primary": "#003087",
+    "color_secondary": "#F0F0F0",
+    "nationality": "JP"
+  },
+  {
+    "name": "Canon",
+    "tier": "small",
+    "color_primary": "#CC0000",
+    "color_secondary": "#F0F0F0",
+    "nationality": "JP"
+  },
+  {
+    "name": "Nikon",
+    "tier": "small",
+    "color_primary": "#FFD700",
+    "color_secondary": "#1A1A1A",
+    "nationality": "JP"
+  },
+  {
+    "name": "LG",
+    "tier": "small",
+    "color_primary": "#A50034",
+    "color_secondary": "#F0F0F0",
+    "nationality": "KR"
+  },
+  {
+    "name": "Xiaomi",
+    "tier": "small",
+    "color_primary": "#FF6900",
+    "color_secondary": "#F0F0F0",
+    "nationality": "CN"
+  },
+  {
+    "name": "PayPal",
+    "tier": "small",
+    "color_primary": "#003087",
+    "color_secondary": "#009CDE",
+    "nationality": "US"
+  },
+  {
+    "name": "Stripe",
+    "tier": "small",
+    "color_primary": "#635BFF",
+    "color_secondary": "#F0F0F0",
+    "nationality": "US"
+  },
+  {
+    "name": "Coinbase",
+    "tier": "small",
+    "color_primary": "#0052FF",
+    "color_secondary": "#F0F0F0",
+    "nationality": "US"
+  },
+  {
+    "name": "Palantir",
+    "tier": "small",
+    "color_primary": "#1A1A1A",
+    "color_secondary": "#F0F0F0",
+    "nationality": "US"
+  },
+  {
+    "name": "AMD",
+    "tier": "small",
+    "color_primary": "#CC0000",
+    "color_secondary": "#F0F0F0",
+    "nationality": "US"
+  },
+  {
+    "name": "VMware",
+    "tier": "small",
+    "color_primary": "#607078",
+    "color_secondary": "#F0F0F0",
+    "nationality": "US"
+  },
+  {
+    "name": "Elastic",
+    "tier": "small",
+    "color_primary": "#F04E98",
+    "color_secondary": "#F0F0F0",
+    "nationality": "US"
+  },
+  {
+    "name": "Datadog",
+    "tier": "small",
+    "color_primary": "#632CA6",
+    "color_secondary": "#F0F0F0",
+    "nationality": "US"
+  },
+  {
+    "name": "SEGA",
+    "tier": "small",
+    "color_primary": "#1A1A1A",
+    "color_secondary": "#0066CC",
+    "nationality": "JP"
+  },
+  {
+    "name": "Goodyear",
+    "tier": "small",
+    "color_primary": "#FFD700",
+    "color_secondary": "#1A1A1A",
+    "nationality": "US"
+  },
+  {
+    "name": "Parmalat",
+    "tier": "small",
+    "color_primary": "#003087",
+    "color_secondary": "#F0F0F0",
+    "nationality": "IT"
+  },
+  {
+    "name": "Kenwood",
+    "tier": "small",
+    "color_primary": "#CC0000",
+    "color_secondary": "#F0F0F0",
+    "nationality": "JP"
+  },
+  {
+    "name": "Pioneer",
+    "tier": "small",
+    "color_primary": "#CC0000",
+    "color_secondary": "#F0F0F0",
+    "nationality": "JP"
+  },
+  {
+    "name": "National",
+    "tier": "small",
+    "color_primary": "#003087",
+    "color_secondary": "#F0F0F0",
+    "nationality": "BR"
+  },
+  {
+    "name": "Haier",
+    "tier": "small",
+    "color_primary": "#003087",
+    "color_secondary": "#F0F0F0",
+    "nationality": "CN"
+  },
+  {
+    "name": "TCL",
+    "tier": "small",
+    "color_primary": "#CC0000",
+    "color_secondary": "#F0F0F0",
+    "nationality": "CN"
+  },
+  {
+    "name": "Lindt",
+    "tier": "small",
+    "color_primary": "#8B6914",
+    "color_secondary": "#F0F0F0",
+    "nationality": "CH"
+  }
+]

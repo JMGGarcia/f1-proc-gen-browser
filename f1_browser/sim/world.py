@@ -8,16 +8,17 @@ from db import models as m
 from db.backup import cleanup_backups, get_world_id8, make_backup
 from sim.constants import DriverConstants, PointsSystem, SimulationConstants, TeamConstants
 from sim.drivers import Driver, DriverGenerator
+from sim.countries import get_all_countries
 from sim.flags import NATIONALITY_FLAGS
 from sim.race import LapRace
 from sim.season import Season
 from sim.sponsors import Sponsor
-from sim.teams import Direction, Engine, OwnerType, Team
+from sim.teams import Chief, ChiefGenerator, ChiefRole, Engine, OwnerType, Team
 
 
 def _is_struggling(team: Team) -> bool:
     """Return True if a team has finished outside the top STRUGGLING_THRESHOLD in 4 of the last 5 seasons."""
-    ph = team.direction.position_history
+    ph = team.position_history
     if len(ph) < SimulationConstants.HISTORY_YEARS:
         return False
     bad = sum(1 for p in ph[-SimulationConstants.HISTORY_YEARS:] if p > TeamConstants.STRUGGLING_THRESHOLD)
@@ -65,6 +66,8 @@ class WorldRunner:
         driver_generator: DriverGenerator,
         n_seasons: int,
         sponsors: Optional[List[Sponsor]] = None,
+        chief_generator: Optional[ChiefGenerator] = None,
+        chiefs: Optional[List[Chief]] = None,
     ):
         self.tracks = tracks
         self.engines = engines
@@ -73,6 +76,10 @@ class WorldRunner:
         self.driver_generator = driver_generator
         self.n_seasons = n_seasons
         self.sponsors: List[Sponsor] = sponsors or []
+        self.chief_generator: ChiefGenerator = chief_generator or ChiefGenerator(
+            names_dir=driver_generator.names_dir
+        )
+        self.chiefs: List[Chief] = chiefs or []
 
         # Tick-loop state (lap-by-lap live feed)
         self._tick_season: Optional[Season] = None
@@ -335,7 +342,10 @@ class WorldRunner:
         winning_driver = sorted_drivers[0][0]
         winning_team = sorted_teams[0][0]
 
-        self._update_directions(db, season_num, sorted_teams)
+        self._update_position_history(sorted_teams)
+        self._update_chiefs(db, season_num, sorted_teams)
+        self._tick_chief_contracts(db, season_num)
+        self._match_chiefs_to_teams(db, season_num, sorted_teams)
         sorted_teams = self._check_team_sales(db, season_num, sorted_teams)
         self._age_drivers(db, season_num)
         self._tweak_chassis_engine(db, season_num, season_id)
@@ -553,7 +563,10 @@ class WorldRunner:
         winning_driver = sorted_drivers[0][0]
         winning_team = sorted_teams[0][0]
 
-        self._update_directions(db, season_num, sorted_teams)
+        self._update_position_history(sorted_teams)
+        self._update_chiefs(db, season_num, sorted_teams)
+        self._tick_chief_contracts(db, season_num)
+        self._match_chiefs_to_teams(db, season_num, sorted_teams)
         sorted_teams = self._check_team_sales(db, season_num, sorted_teams)
         self._age_drivers(db, season_num)
         self._tweak_chassis_engine(db, season_num, season_id)
@@ -623,11 +636,14 @@ class WorldRunner:
                 season_id=season_id,
                 engine_id=team.engine.db_id if team.engine else None,
                 chassis=team.chassis,
-                direction_avg=team.direction.avg,
-                direction_development=team.direction.development,
-                direction_scouting=team.direction.scouting,
-                direction_eng_scouting=team.direction.eng_scouting,
-                direction_years=team.direction.years,
+                owner_chief_id=team.owner.db_id if team.owner else None,
+                cto_chief_id=team.cto.db_id if team.cto else None,
+                cmo_chief_id=team.cmo.db_id if team.cmo else None,
+                cpo_chief_id=team.cpo.db_id if team.cpo else None,
+                owner_skill=team.owner.skill_primary if team.owner else None,
+                cto_development=team.cto.skill_primary if team.cto else None,
+                cto_eng_scouting=team.cto.skill_secondary if team.cto else None,
+                cpo_scouting=team.cpo.skill_primary if team.cpo else None,
                 total_points=team_points.get(team, 0),
                 championship_position=pos,
                 sponsor_id=team.sponsor.db_id if team.sponsor else None,
@@ -653,28 +669,208 @@ class WorldRunner:
     # Post-season sim updates                                              #
     # ------------------------------------------------------------------ #
 
-    def _update_directions(self, db, season_num: int, sorted_teams):
-        total_teams = len(self.teams)
+    def _update_position_history(self, sorted_teams):
+        """Update each team's position_history from the finished season results."""
         for idx, (team, _) in enumerate(sorted_teams, 1):
-            old_stats = team.direction.get_stats()
-            changed = team.direction.yearly_update(idx, total_teams)
-            if changed:
-                # Apply direction floor for financially-backed owners
-                if team.owner_type in (OwnerType.ENGINE_SUPPLIER, OwnerType.SPONSOR):
-                    floor = TeamConstants.DIRECTION_OWNER_FLOOR
-                    team.direction.development = max(floor, team.direction.development)
-                    team.direction.scouting = max(floor, team.direction.scouting)
-                    team.direction.eng_scouting = max(floor, team.direction.eng_scouting)
+            team.position_history.append(idx)
+            if len(team.position_history) > SimulationConstants.HISTORY_YEARS:
+                team.position_history.pop(0)
 
-                new_stats = team.direction.get_stats()
-                self._emit_event(
-                    db, season_num, "direction_change",
-                    f"{team.name} appointed a new team principal. "
-                    f"Management skill changed from {old_stats[0]} to {new_stats[0]}.",
+    def _retire_chief(self, db, chief: Chief, season_num: int) -> None:
+        """Retire a non-owner chief, hard-delete if never employed, then spawn a replacement into the pool."""
+        was_employed = db.query(m.TeamSeasonStats).filter(
+            (m.TeamSeasonStats.owner_chief_id == chief.db_id)
+            | (m.TeamSeasonStats.cto_chief_id == chief.db_id)
+            | (m.TeamSeasonStats.cmo_chief_id == chief.db_id)
+            | (m.TeamSeasonStats.cpo_chief_id == chief.db_id)
+        ).first() is not None
+
+        if was_employed:
+            db.query(m.TeamChief).filter_by(id=chief.db_id).update({
+                "retired": True, "retired_season": season_num,
+            })
+        else:
+            db.query(m.TeamChief).filter_by(id=chief.db_id).delete()
+
+        chief.retired = True
+        if chief in self.chiefs:
+            self.chiefs.remove(chief)
+
+        # Spawn a replacement into the free-agent pool
+        role_gen_map = {
+            ChiefRole.CTO: self.chief_generator.generate_cto,
+            ChiefRole.CMO: self.chief_generator.generate_cmo,
+            ChiefRole.CPO: self.chief_generator.generate_cpo,
+        }
+        gen_method = role_gen_map.get(chief.role)
+        if gen_method is None:
+            return  # owners have succession; no pool replacement
+
+        new_chief = gen_method(random.choice([c.code for c in get_all_countries()]))
+        db_c = m.TeamChief(
+            first_name=new_chief.first_name,
+            last_name=new_chief.last_name,
+            nationality=new_chief.nationality,
+            role=new_chief.role,
+            age=new_chief.age,
+            skill_primary=new_chief.skill_primary,
+            skill_secondary=new_chief.skill_secondary,
+            team_id=None,
+            contract_years=new_chief.contract_years,
+            retired=False,
+        )
+        db.add(db_c)
+        db.flush()
+        new_chief.db_id = db_c.id
+        new_chief.team = None
+        self.chiefs.append(new_chief)
+        self._emit_event(
+            db, season_num, "chief_debut",
+            f"{new_chief.first_name} {new_chief.last_name} "
+            f"(age {new_chief.age}) entered the {new_chief.role.upper()} pool.",
+        )
+
+    def _update_chiefs(self, db, season_num: int, sorted_teams):
+        """Age all chiefs, tick skill updates, handle owner succession."""
+        for chief in list(self.chiefs):
+            chief.age += 1
+            chief.yearly_skill_update()
+            db.query(m.TeamChief).filter_by(id=chief.db_id).update({
+                "age": chief.age,
+                "skill_primary": chief.skill_primary,
+                "skill_secondary": chief.skill_secondary,
+            })
+            # Free-agent non-owner retirement (covers chiefs released from teams who now age out)
+            if chief.role != ChiefRole.OWNER and chief.team is None:
+                if chief.should_retire_as_free_agent():
+                    self._retire_chief(db, chief, season_num)
+                continue
+
+            # Owner retirement
+            if chief.role == ChiefRole.OWNER and chief.age >= TeamConstants.OWNER_RETIRE_AGE:
+                team = chief.team
+                if team is None:
+                    continue
+                db.query(m.TeamChief).filter_by(id=chief.db_id).update({
+                    "retired": True, "retired_season": season_num,
+                })
+                chief.retired = True
+                self.chiefs.remove(chief)
+                team.owner = None
+                # Generate successor
+                successor = self.chief_generator.generate_owner_successor(chief)
+                successor.team = team
+                db_s = m.TeamChief(
+                    first_name=successor.first_name,
+                    last_name=successor.last_name,
+                    nationality=successor.nationality,
+                    role=ChiefRole.OWNER,
+                    age=successor.age,
+                    skill_primary=successor.skill_primary,
+                    skill_secondary=successor.skill_secondary,
+                    team_id=team.db_id,
+                    contract_years=successor.contract_years,
+                    retired=False,
                 )
-                # Engine-supplier owned teams don't lose their engine on principal change
-                if team.owner_type != OwnerType.ENGINE_SUPPLIER:
-                    team.remove_engine()
+                db.add(db_s)
+                db.flush()
+                successor.db_id = db_s.id
+                team.owner = successor
+                self.chiefs.append(successor)
+                self._emit_event(
+                    db, season_num, "chief_succession",
+                    f"{team.name}: {successor.first_name} {successor.last_name} succeeded "
+                    f"{chief.first_name} {chief.last_name} as team owner (age {chief.age}).",
+                )
+
+    def _tick_chief_contracts(self, db, season_num: int):
+        """Decrement non-owner contracts; release or retire expired chiefs."""
+        for team in self.teams:
+            for role_attr in ("cto", "cmo", "cpo"):
+                chief: Optional[Chief] = getattr(team, role_attr)
+                if chief is None:
+                    continue
+                chief.tick_contract()
+                if not chief.is_contract_expired():
+                    continue
+                if chief.should_retire_as_free_agent():
+                    setattr(team, role_attr, None)
+                    chief.team = None
+                    db.query(m.TeamChief).filter_by(id=chief.db_id).update({"team_id": None})
+                    self._retire_chief(db, chief, season_num)
+                else:
+                    # Release to free agent pool
+                    db.query(m.TeamChief).filter_by(id=chief.db_id).update({"team_id": None})
+                    chief.team = None
+                    setattr(team, role_attr, None)
+                    self._emit_event(
+                        db, season_num, "chief_free_agent",
+                        f"{chief.name} ({chief.role.upper()}) is now a free agent.",
+                    )
+
+    def _match_chiefs_to_teams(self, db, season_num: int, sorted_teams):
+        """Hire free-agent chiefs for vacant roles."""
+        for role_attr, role_str, gen_method in (
+            ("cto", ChiefRole.CTO, self.chief_generator.generate_cto),
+            ("cmo", ChiefRole.CMO, self.chief_generator.generate_cmo),
+            ("cpo", ChiefRole.CPO, self.chief_generator.generate_cpo),
+        ):
+            free_chiefs = [c for c in self.chiefs if c.role == role_str and c.team is None and not c.retired]
+            for team, _ in sorted_teams:
+                if getattr(team, role_attr) is not None:
+                    continue
+                if not free_chiefs:
+                    # Safety net: pool is unexpectedly empty — generate one directly
+                    print(
+                        f"  [WARN] Season {season_num}: {role_str.upper()} pool empty, generating on demand.",
+                        flush=True,
+                    )
+                    chosen = gen_method(random.choice([c.code for c in get_all_countries()]))
+                    db_c = m.TeamChief(
+                        first_name=chosen.first_name,
+                        last_name=chosen.last_name,
+                        nationality=chosen.nationality,
+                        role=role_str,
+                        age=chosen.age,
+                        skill_primary=chosen.skill_primary,
+                        skill_secondary=chosen.skill_secondary,
+                        team_id=None,
+                        contract_years=chosen.contract_years,
+                        retired=False,
+                    )
+                    db.add(db_c)
+                    db.flush()
+                    chosen.db_id = db_c.id
+                    chosen.team = None
+                    self.chiefs.append(chosen)
+                    free_chiefs.append(chosen)
+                rated = self._compute_chief_perception(team, free_chiefs)
+                chosen = rated[0]
+                free_chiefs.remove(chosen)
+                contract = random.randint(
+                    TeamConstants.CHIEF_CONTRACT_MIN, TeamConstants.CHIEF_CONTRACT_MAX
+                )
+                chosen.contract_years = contract
+                chosen.team = team
+                setattr(team, role_attr, chosen)
+                db.query(m.TeamChief).filter_by(id=chosen.db_id).update({
+                    "team_id": team.db_id,
+                    "contract_years": contract,
+                })
+                self._emit_event(
+                    db, season_num, "chief_signing",
+                    f"{team.name} signed {chosen.name} as {role_str.upper()} "
+                    f"(skill {chosen.skill_primary}) on a {contract}-year contract.",
+                )
+
+    def _compute_chief_perception(self, team: Team, candidates: List[Chief]) -> List[Chief]:
+        factor = SimulationConstants.SCOUTING_TRUE_FACTOR
+        owner_f = factor + team.owner_scouting_factor * (1 - factor)
+        scored = [
+            (c.skill_primary * owner_f + random.random() * (1 - owner_f), i, c)
+            for i, c in enumerate(candidates)
+        ]
+        return [c for _, _i, c in sorted(scored, reverse=True)]
 
     def _age_drivers(self, db, season_num: int):
         to_retire = []
@@ -720,23 +916,27 @@ class WorldRunner:
                     + SimulationConstants.REVOLUTION_EFFECT * random.random()
                 )
             delta = random.random() * random_factor - random_factor / 2
-            delta += team.direction.development * SimulationConstants.TEAM_DEVELOPMENT_INFLUENCE
+            delta += team.cto_development * SimulationConstants.TEAM_DEVELOPMENT_INFLUENCE
             team.chassis = min(1.0, max(0.0, team.chassis + delta))
 
         for engine in self.engines:
+            owns_a_team = any(
+                t.owner_type == OwnerType.ENGINE_SUPPLIER and t.owner_engine is engine
+                for t in engine.teams
+            )
             if revolution:
                 engine.power = (
                     (1 - SimulationConstants.REVOLUTION_EFFECT) * engine.power
                     + SimulationConstants.REVOLUTION_EFFECT * random.random()
                 )
+                if owns_a_team:
+                    engine.power = max(TeamConstants.ENGINE_SUPPLIER_REVOLUTION_MIN, engine.power)
             delta = random.random() * random_factor - random_factor / 2
             engine.power = min(1.0, max(0.0, engine.power + delta))
+            if revolution and engine.teams:
+                engine.power = max(TeamConstants.ENGINE_IN_USE_REVOLUTION_MIN, engine.power)
 
             # Engine supplier ownership bonus: extra investment in development
-            owns_a_team = any(
-                t.owner_type == OwnerType.ENGINE_SUPPLIER and t.owner_engine is engine
-                for t in engine.teams
-            )
             if owns_a_team:
                 engine.power = min(1.0, engine.power + TeamConstants.ENGINE_OWNER_POWER_BONUS)
 
@@ -808,6 +1008,10 @@ class WorldRunner:
             r2, g2, b2 = sponsor.rgb_primary
             if ((r1-r2)**2 + (g1-g2)**2 + (b1-b2)**2) ** 0.5 <= 80:
                 score += 1
+            if team.engine and team.engine.rgb_primary:
+                r3, g3, b3 = team.engine.rgb_primary
+                if ((r3-r2)**2 + (g3-g2)**2 + (b3-b2)**2) ** 0.5 <= 80:
+                    score += 1
             return score
 
         # Release expired contracts — but give a 75% chance of renewal if the
@@ -957,12 +1161,10 @@ class WorldRunner:
 
         drivers_in_teams = sum(1 for team in self.teams for driver in team.drivers if driver is not None)
         total_teams = len(self.teams)
-        print(
-            f"  [teams_pick_drivers] Season {season_num}: {drivers_in_teams} drivers in {total_teams} teams "
-            f"({drivers_in_teams / 2 / total_teams * 100:.0f}% fill rate)",
-            flush=True,
-        )
 
+        # Sync all teams' driver contract data to DB
+        for team in self.teams:
+            self._sync_team_to_db(db, team)
 
     def _teams_pick_engines(self, db, season_num: int, sorted_teams, winning_driver: Driver, winning_team: Team):
         winning_driver_engine = winning_driver.team.engine if winning_driver.team else None
@@ -1043,6 +1245,10 @@ class WorldRunner:
                     )
                     break
 
+        # Sync all teams' engine data to DB
+        for team in self.teams:
+            self._sync_team_to_db(db, team)
+
     def _check_team_sales(self, db, season_num: int, sorted_teams):
         """Evaluate struggling teams for potential sale and execute any sales."""
         for team in list(self.teams):  # iterate copy; self.teams may change
@@ -1061,6 +1267,21 @@ class WorldRunner:
             ]
         return sorted_teams
 
+    def _sync_team_to_db(self, db, team: Team) -> None:
+        """Persist current in-memory engine/driver/sponsor state to the Team DB row."""
+        engine_id = team.engine.db_id if team.engine else None
+        sponsor_id = team.sponsor.db_id if team.sponsor else None
+        dc = team.driver_contracts
+        db.query(m.Team).filter_by(id=team.db_id).update({
+            "engine_id": engine_id,
+            "engine_contract": team.engine_contract,
+            "driver_contract_1": dc[0] if len(dc) > 0 else None,
+            "driver_contract_2": dc[1] if len(dc) > 1 else None,
+            "chassis": team.chassis,
+            "sponsor_id": sponsor_id,
+            "sponsor_contract": team.sponsor_contract,
+        })
+
     def _execute_sale(self, db, season_num: int, old_team: Team, buyer_type: str) -> Team:
         """Create a successor team entity and transfer assets."""
         names_dir = self.driver_generator.names_dir
@@ -1068,7 +1289,7 @@ class WorldRunner:
         if buyer_type == OwnerType.ENGINE_SUPPLIER:
             owning_engine_ids = {t.owner_engine.db_id for t in self.teams if t.owner_engine}
             free_engines = [e for e in self.engines if e.db_id not in owning_engine_ids]
-            buyer_engine = random.choice(free_engines)
+            buyer_engine = max(free_engines, key=lambda e: e.power)
             buyer_sponsor = None
             new_name = buyer_engine.name
             new_primary = buyer_engine.color_primary
@@ -1143,10 +1364,44 @@ class WorldRunner:
             owner_sponsor=buyer_sponsor,
             finance_base=new_finance_base,
         )
-        # Fresh direction, cleared history (new ownership era)
-        new_team.direction = Direction()
-        new_team.direction.position_history = []
-        new_team.direction.years = 0
+        # Generate fresh chiefs for the new ownership era
+        def _persist_chief(chief: Chief, team_id: int) -> None:
+            db_c = m.TeamChief(
+                first_name=chief.first_name,
+                last_name=chief.last_name,
+                nationality=chief.nationality,
+                role=chief.role,
+                age=chief.age,
+                skill_primary=chief.skill_primary,
+                skill_secondary=chief.skill_secondary,
+                team_id=team_id,
+                contract_years=chief.contract_years,
+                retired=False,
+            )
+            db.add(db_c)
+            db.flush()
+            chief.db_id = db_c.id
+            self.chiefs.append(chief)
+
+        new_owner = self.chief_generator.generate_owner(new_name, new_nationality, buyer_type)
+        new_owner.team = new_team
+        _persist_chief(new_owner, db_new.id)
+        new_team.owner = new_owner
+
+        new_cto = self.chief_generator.generate_cto(new_nationality)
+        new_cto.team = new_team
+        _persist_chief(new_cto, db_new.id)
+        new_team.cto = new_cto
+
+        new_cmo = self.chief_generator.generate_cmo(new_nationality)
+        new_cmo.team = new_team
+        _persist_chief(new_cmo, db_new.id)
+        new_team.cmo = new_cmo
+
+        new_cpo = self.chief_generator.generate_cpo(new_nationality)
+        new_cpo.team = new_team
+        _persist_chief(new_cpo, db_new.id)
+        new_team.cpo = new_cpo
 
         # Engine lock-in for supplier buyers
         if buyer_type == OwnerType.ENGINE_SUPPLIER:
@@ -1183,6 +1438,18 @@ class WorldRunner:
             if drv is not None:
                 drv.team = new_team
 
+        # Retire old team's chiefs
+        season_num_local = season_num  # capture for closure
+        for role_attr in ("owner", "cto", "cmo", "cpo"):
+            old_chief: Optional[Chief] = getattr(old_team, role_attr)
+            if old_chief is not None:
+                db.query(m.TeamChief).filter_by(id=old_chief.db_id).update({
+                    "retired": True, "retired_season": season_num_local, "team_id": None,
+                })
+                old_chief.retired = True
+                if old_chief in self.chiefs:
+                    self.chiefs.remove(old_chief)
+
         # Swap in self.teams
         self.teams.remove(old_team)
         self.teams.append(new_team)
@@ -1197,6 +1464,7 @@ class WorldRunner:
             db, season_num, "team_sale",
             f"{old_team.name} was acquired by {owner_label} and rebranded as {new_name}.",
         )
+        self._sync_team_to_db(db, new_team)
         return new_team
 
     def _generate_individual_team_identity(self, names_dir: str):
@@ -1428,7 +1696,7 @@ class WorldRunner:
     def _compute_driver_perception(self, team: Team) -> List[Driver]:
         free_drivers = [d for d in self.drivers if d.team is None]
         factor = SimulationConstants.SCOUTING_TRUE_FACTOR
-        scouting = factor + team.direction.scouting * (1 - factor)
+        scouting = factor + team.cpo_scouting * (1 - factor)
         scored = [
             (d.skill * scouting + random.random() * (1 - scouting), i, d)
             for i, d in enumerate(free_drivers)
@@ -1437,7 +1705,7 @@ class WorldRunner:
 
     def _compute_engine_perception(self, team: Team) -> List[Engine]:
         factor = SimulationConstants.SCOUTING_TRUE_FACTOR
-        scouting = factor + team.direction.eng_scouting * (1 - factor)
+        scouting = factor + team.cto_eng_scouting * (1 - factor)
         scored = [
             (e.value * scouting + random.random() * (1 - scouting), i, e)
             for i, e in enumerate(self.engines)
@@ -1451,7 +1719,8 @@ class WorldRunner:
         })
         self.drivers.remove(driver)
         # Generate a replacement
-        new_driver = self.driver_generator.generate_driver()
+        track_ids = [t.db_id for t in self.tracks if t.db_id]
+        new_driver = self.driver_generator.generate_driver(track_ids=track_ids)
         db_driver = m.Driver(
             first_name=new_driver.first_name,
             last_name=new_driver.last_name,
@@ -1459,6 +1728,8 @@ class WorldRunner:
             age=new_driver.age,
             skill=new_driver.skill,
             top_skill=new_driver.top_skill,
+            liked_tracks=",".join(str(i) for i in new_driver.liked_track_ids) if new_driver.liked_track_ids else None,
+            disliked_tracks=",".join(str(i) for i in new_driver.disliked_track_ids) if new_driver.disliked_track_ids else None,
         )
         db.add(db_driver)
         db.flush()

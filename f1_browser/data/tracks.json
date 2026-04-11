@@ -1,0 +1,22 @@
+[
+  {"name": "Melbourne",    "downforce_over_engine": 0.6,  "car_over_driver": 0.8, "target_lap_time":  80.0},
+  {"name": "Shanghai",     "downforce_over_engine": 0.5,  "car_over_driver": 0.8, "target_lap_time":  95.0},
+  {"name": "Bahrain",      "downforce_over_engine": 0.7,  "car_over_driver": 0.8, "target_lap_time":  93.0},
+  {"name": "Sochi",        "downforce_over_engine": 0.3,  "car_over_driver": 0.8, "target_lap_time":  96.0},
+  {"name": "Barcelona",    "downforce_over_engine": 0.6,  "car_over_driver": 0.8, "target_lap_time":  79.0},
+  {"name": "Monaco",       "downforce_over_engine": 0.9,  "car_over_driver": 0.8, "target_lap_time":  72.0},
+  {"name": "Montreal",     "downforce_over_engine": 0.2,  "car_over_driver": 0.8, "target_lap_time":  74.0},
+  {"name": "Baku",         "downforce_over_engine": 0.1,  "car_over_driver": 0.8, "target_lap_time": 102.0},
+  {"name": "Spielberg",    "downforce_over_engine": 0.2,  "car_over_driver": 0.8, "target_lap_time":  65.0},
+  {"name": "Silverstone",  "downforce_over_engine": 0.5,  "car_over_driver": 0.8, "target_lap_time":  88.0},
+  {"name": "Budapest",     "downforce_over_engine": 0.75, "car_over_driver": 0.8, "target_lap_time":  78.0},
+  {"name": "Spa",          "downforce_over_engine": 0.1,  "car_over_driver": 0.8, "target_lap_time": 108.0},
+  {"name": "Monza",        "downforce_over_engine": 0.1,  "car_over_driver": 0.8, "target_lap_time":  82.0},
+  {"name": "Singapore",    "downforce_over_engine": 0.85, "car_over_driver": 0.8, "target_lap_time": 101.0},
+  {"name": "Kuala Lumpur", "downforce_over_engine": 0.35, "car_over_driver": 0.8, "target_lap_time":  91.0},
+  {"name": "Suzuka",       "downforce_over_engine": 0.6,  "car_over_driver": 0.8, "target_lap_time":  91.0},
+  {"name": "Austin",       "downforce_over_engine": 0.4,  "car_over_driver": 0.8, "target_lap_time":  96.0},
+  {"name": "Mexico City",  "downforce_over_engine": 0.4,  "car_over_driver": 0.8, "target_lap_time":  79.0},
+  {"name": "Sao Paulo",    "downforce_over_engine": 0.25, "car_over_driver": 0.8, "target_lap_time":  71.0},
+  {"name": "Abu Dhabi",    "downforce_over_engine": 0.65, "car_over_driver": 0.8, "target_lap_time":  95.0}
+]

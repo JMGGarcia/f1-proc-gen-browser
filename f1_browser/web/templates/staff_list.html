@@ -1,0 +1,63 @@
+{% extends "base.html" %}
+{% block title %}Staff — F1 World{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <h1>STAFF</h1>
+  <div class="subtitle">Active — {{ (on_team | length) + (free_agents | length) }} members</div>
+</div>
+
+{% from "macros.html" import team_badge %}
+
+{% macro chief_table(chiefs, show_role=false) %}
+<table class="data-table">
+  <thead>
+    <tr>
+      <th>Name</th>
+      <th>Nat</th>
+      {% if show_role %}<th>Role</th>{% endif %}
+      <th>Team</th>
+      <th class="num">Age</th>
+      <th class="num">Primary Skill</th>
+      <th class="num">Secondary</th>
+    </tr>
+  </thead>
+  <tbody>
+    {% for chief in chiefs %}
+    <tr>
+      <td><a href="/staff/{{ chief.id }}">{{ chief.first_name }} {{ chief.last_name }}</a></td>
+      <td class="flag">{{ chief.flag }}</td>
+      {% if show_role %}<td>{{ chief.role_display }}</td>{% endif %}
+      <td>
+        {% if chief.current_team %}{{ team_badge(chief.current_team) }}{% else %}—{% endif %}
+      </td>
+      <td class="num">{{ chief.age }}</td>
+      <td class="num" style="color:{{ stat_color(chief.skill_primary / 100) }}">{{ chief.skill_primary }}</td>
+      <td class="num">
+        {% if chief.skill_secondary is not none %}
+        <span style="color:{{ stat_color(chief.skill_secondary / 100) }}">{{ chief.skill_secondary }}</span>
+        {% else %}—{% endif %}
+      </td>
+    </tr>
+    {% endfor %}
+  </tbody>
+</table>
+{% endmacro %}
+
+{% for role_key, role_label in [('owner', 'OWNERS'), ('cto', 'CTOs'), ('cmo', 'CMOs'), ('cpo', 'CPOs')] %}
+  {% set role_on_team = on_team | selectattr('role', 'equalto', role_key) | list %}
+  {% set role_free = free_agents | selectattr('role', 'equalto', role_key) | list %}
+  {% if role_on_team or role_free %}
+  <h2>{{ role_label }} <span style="color:var(--muted);font-weight:normal;font-size:13px">{{ (role_on_team | length) + (role_free | length) }}</span></h2>
+  {% if role_on_team %}
+  <h3 style="margin:8px 0 4px;font-size:12px;color:var(--muted);font-weight:normal;letter-spacing:.08em">ON TEAM</h3>
+  {{ chief_table(role_on_team) }}
+  {% endif %}
+  {% if role_free %}
+  <h3 style="margin:8px 0 4px;font-size:12px;color:var(--muted);font-weight:normal;letter-spacing:.08em">FREE AGENTS</h3>
+  {{ chief_table(role_free) }}
+  {% endif %}
+  {% endif %}
+{% endfor %}
+
+{% endblock %}

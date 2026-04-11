@@ -8,7 +8,7 @@ from fastapi import FastAPI
 from db.models import Driver, DriverSeasonStats, Season
 from db.session import get_session
 from web import broadcaster, sim_state
-from web.routes import index, seasons, drivers, teams, engines, sponsors, stats, simulate, events
+from web.routes import index, seasons, drivers, teams, engines, sponsors, stats, simulate, events, staff
 from web.templates_env import templates
 
 logger = logging.getLogger(__name__)
@@ -33,6 +33,7 @@ app.include_router(sponsors.router)
 app.include_router(stats.router)
 app.include_router(simulate.router)
 app.include_router(events.router)
+app.include_router(staff.router)
 
 _nav_ctx_cache: dict | None = None
 _nav_ctx_timestamp: float = 0.0

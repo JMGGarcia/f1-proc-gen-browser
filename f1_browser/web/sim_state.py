@@ -12,7 +12,7 @@ _runner = None
 _lock = threading.Lock()
 _busy = False
 
-TICK_INTERVAL_SECONDS = 10
+TICK_INTERVAL_SECONDS = 2
 
 _tick_thread: Optional[threading.Thread] = None
 _tick_running = False

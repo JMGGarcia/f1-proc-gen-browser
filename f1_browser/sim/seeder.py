@@ -5,6 +5,7 @@ Creates the initial world state in the database and returns in-memory sim object
 from __future__ import annotations
 
 import colorsys
+import json
 import os
 import random
 import uuid
@@ -12,66 +13,46 @@ from typing import List, Tuple
 
 from db import models as m
 from sim.constants import SimulationConstants, TeamConstants
-from sim.countries import get_country
+from sim.countries import get_all_countries, get_country
 from sim.drivers import Driver, DriverGenerator
-from sim.sponsors import Sponsor, SPONSOR_DATA
-from sim.teams import Engine, Team
+from sim.sponsors import Sponsor
+from sim.teams import Chief, ChiefGenerator, ChiefRole, Engine, OwnerType, Team
 from sim.tracks import Track
 
 
+def _load_data(filename: str):
+    data_path = os.path.join(os.path.dirname(__file__), "..", "data", filename)
+    with open(data_path, "r", encoding="utf-8") as f:
+        return json.load(f)
+
+
 def _make_tracks() -> List[Track]:
-    # (name, downforce_over_engine, car_over_driver, target_lap_time_seconds)
-    data = [
-        ("Melbourne",    0.6,  0.8,  80.0),
-        ("Shanghai",     0.5,  0.8,  95.0),
-        ("Bahrain",      0.7,  0.8,  93.0),
-        ("Sochi",        0.3,  0.8,  96.0),
-        ("Barcelona",    0.6,  0.8,  79.0),
-        ("Monaco",       0.9,  0.8,  72.0),
-        ("Montreal",     0.2,  0.8,  74.0),
-        ("Baku",         0.1,  0.8, 102.0),
-        ("Spielberg",    0.2,  0.8,  65.0),
-        ("Silverstone",  0.5,  0.8,  88.0),
-        ("Budapest",     0.75, 0.8,  78.0),
-        ("Spa",          0.1,  0.8, 108.0),
-        ("Monza",        0.1,  0.8,  82.0),
-        ("Singapore",    0.85, 0.8, 101.0),
-        ("Kuala Lumpur", 0.35, 0.8,  91.0),
-        ("Suzuka",       0.6,  0.8,  91.0),
-        ("Austin",       0.4,  0.8,  96.0),
-        ("Mexico City",  0.4,  0.8,  79.0),
-        ("Sao Paulo",    0.25, 0.8,  71.0),
-        ("Abu Dhabi",    0.65, 0.8,  95.0),
-    ]
-    return [Track(name=n, downforce_over_engine=d, car_over_driver=c, target_lap_time=t) for n, d, c, t in data]
+    data = _load_data("tracks.json")
+    return [Track(
+        name=d["name"],
+        downforce_over_engine=d["downforce_over_engine"],
+        car_over_driver=d["car_over_driver"],
+        target_lap_time=d["target_lap_time"],
+    ) for d in data]
 
 
 def _make_engines() -> List[Engine]:
-    # (name, color_primary, color_secondary, nationality)
-    data = [
-        ("SEAT",       "#CC0000", "#303030", "ES"),
-        ("Chevrolet",  "#FFD700", "#303030", "US"),
-        ("Jaguar",     "#006400", "#FFD700", "EN"),
-        ("Audi",       "#303030", "#FFFFFF", "GE"),
-        ("Toyota",     "#FFFFFF", "#CC0000", "JP"),
-        ("Ford",       "#003087", "#FFFFFF", "US"),
-        ("Hyundai",    "#FFFFFF", "#002C5F", "KR"),
-        ("BMW",        "#0066CC", "#FFFFFF", "GE"),
-        ("Honda",      "#FFFFFF", "#1B1B1B", "JP"),
-        ("Renault",    "#FFE000", "#000000", "FR"),
-        ("Mercedes",   "#C0C0C0", "#111111", "GE"),
-        ("Ferrari",    "#DC0000", "#FFD700", "IT"),
-        ("Porsche",    "#737373", "#000000", "GE"),
-        ("Alfa Romeo", "#FFFFFF", "#C8102E", "IT"),
-        ("Peugeot",    "#003189", "#C0C0C0", "FR"),
-        ("Nissan",     "#C3002F", "#C0C0C0", "JP"),
-        ("Subaru",     "#013A8A", "#FFD700", "JP"),
-        ("Mazda",      "#D61621", "#FFFFFF", "JP"),
-    ]
+    data = _load_data("engines.json")
     return [
-        Engine(name=n, power=random.random(), reliability=0.8,
-               color_primary=cp, color_secondary=cs, nationality=nat)
-        for n, cp, cs, nat in data
+        Engine(name=d["name"], power=random.random(), reliability=0.8,
+               color_primary=d["color_primary"], color_secondary=d["color_secondary"],
+               nationality=d["nationality"])
+        for d in data
+    ]
+
+
+def _make_sponsors() -> List[Sponsor]:
+    data = _load_data("sponsors.json")
+    return [
+        Sponsor(name=d["name"], tier=d["tier"],
+                color_primary=d["color_primary"], color_secondary=d["color_secondary"],
+                nationality=d["nationality"])
+        for d in data
     ]
 
 
@@ -182,15 +163,9 @@ def _generate_team_configs(names_dir: str, n: int = 10) -> list[tuple[str, str, 
     return configs
 
 
-def _make_sponsors() -> List[Sponsor]:
-    return [
-        Sponsor(name=name, tier=tier, color_primary=cp, color_secondary=cs, nationality=nat)
-        for name, tier, cp, cs, nat in SPONSOR_DATA
-    ]
-
-
 def seed_world(db, names_dir: str = "./names") -> Tuple[
-    List[Track], List[Engine], List[Team], List[Driver], DriverGenerator, List[Sponsor]
+    List[Track], List[Engine], List[Team], List[Driver], DriverGenerator, List[Sponsor],
+    ChiefGenerator, List[Chief]
 ]:
     """Seed tracks, engines, teams, sponsors and initial driver pool into the DB.
     Returns sim objects with db_id fields populated."""
@@ -245,7 +220,8 @@ def seed_world(db, names_dir: str = "./names") -> Tuple[
 
     # --- Drivers ---
     driver_gen = DriverGenerator(names_dir=names_dir)
-    drivers: List[Driver] = [driver_gen.generate_driver() for _ in range(SimulationConstants.DRIVERS_POOL)]
+    track_ids = [t.db_id for t in tracks]
+    drivers: List[Driver] = [driver_gen.generate_driver(track_ids=track_ids) for _ in range(SimulationConstants.DRIVERS_POOL)]
 
     for driver in drivers:
         db_driver = m.Driver(
@@ -258,6 +234,8 @@ def seed_world(db, names_dir: str = "./names") -> Tuple[
             loyalty=driver.loyalty,
             greed=driver.greed,
             ambition=driver.ambition,
+            liked_tracks=",".join(str(i) for i in driver.liked_track_ids) if driver.liked_track_ids else None,
+            disliked_tracks=",".join(str(i) for i in driver.disliked_track_ids) if driver.disliked_track_ids else None,
         )
         db.add(db_driver)
     db.flush()
@@ -311,6 +289,10 @@ def seed_world(db, names_dir: str = "./names") -> Tuple[
         db_team = m.Team(
             name=team_name, color_primary=cp, color_secondary=cs, nationality=nat,
             sponsor_id=team_sponsor.db_id, sponsor_contract=sponsor_contract,
+            engine_id=engine.db_id, engine_contract=engine_contract,
+            driver_contract_1=team.driver_contracts[0],
+            driver_contract_2=team.driver_contracts[1],
+            chassis=team.chassis,
             is_active=True, owner_type="individual", finance_base=finance_base,
         )
         db.add(db_team)
@@ -322,4 +304,66 @@ def seed_world(db, names_dir: str = "./names") -> Tuple[
 
     db.add(m.WorldMeta(world_id=str(uuid.uuid4())))
     db.commit()
-    return tracks, engines, teams, drivers, driver_gen, sponsors
+
+    # --- Chiefs ---
+    chief_gen = ChiefGenerator(names_dir=names_dir)
+    all_chiefs: List[Chief] = []
+    for team in teams:
+        owner = chief_gen.generate_owner(team.name, team.nationality, OwnerType.INDIVIDUAL)
+        cto   = chief_gen.generate_cto(team.nationality)
+        cmo   = chief_gen.generate_cmo(team.nationality)
+        cpo   = chief_gen.generate_cpo(team.nationality)
+        for chief in (owner, cto, cmo, cpo):
+            chief.team = team
+            db_chief = m.TeamChief(
+                first_name=chief.first_name,
+                last_name=chief.last_name,
+                nationality=chief.nationality,
+                role=chief.role,
+                age=chief.age,
+                skill_primary=chief.skill_primary,
+                skill_secondary=chief.skill_secondary,
+                team_id=team.db_id,
+                contract_years=chief.contract_years,
+                retired=False,
+            )
+            db.add(db_chief)
+            db.flush()
+            chief.db_id = db_chief.id
+            all_chiefs.append(chief)
+        team.owner = owner
+        team.cto   = cto
+        team.cmo   = cmo
+        team.cpo   = cpo
+    db.commit()
+
+    # --- Free-agent chief pool (CTO / CMO / CPO) ---
+    all_country_codes = [c.code for c in get_all_countries()]
+    for role_attr, gen_method in (
+        ("cto", chief_gen.generate_cto),
+        ("cmo", chief_gen.generate_cmo),
+        ("cpo", chief_gen.generate_cpo),
+    ):
+        for _ in range(TeamConstants.CHIEFS_POOL_PER_ROLE):
+            nat = random.choice(all_country_codes)
+            chief = gen_method(nat)
+            chief.team = None
+            db_chief = m.TeamChief(
+                first_name=chief.first_name,
+                last_name=chief.last_name,
+                nationality=chief.nationality,
+                role=chief.role,
+                age=chief.age,
+                skill_primary=chief.skill_primary,
+                skill_secondary=chief.skill_secondary,
+                team_id=None,
+                contract_years=chief.contract_years,
+                retired=False,
+            )
+            db.add(db_chief)
+            db.flush()
+            chief.db_id = db_chief.id
+            all_chiefs.append(chief)
+    db.commit()
+
+    return tracks, engines, teams, drivers, driver_gen, sponsors, chief_gen, all_chiefs

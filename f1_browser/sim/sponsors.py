@@ -87,7 +87,6 @@ SPONSOR_DATA = [
     ("Huawei",              "large",  "#CF0A2C", "#F0F0F0", "CN"),
     # ── Medium ───────────────────────────────────────────────────
     ("Santander",           "medium", "#EC0000", "#F0F0F0", "ES"),
-    ("LVMH",                "medium", "#1A1A1A", "#C9A84C", "FR"),
     ("Xbox",                "medium", "#107C10", "#F0F0F0", "US"),
     ("Castrol",             "medium", "#006135", "#D40000", "EN"),
     ("TAG Heuer",           "medium", "#0D0D0D", "#CA0814", "CH"),
@@ -154,7 +153,7 @@ SPONSOR_DATA = [
     ("Binance",             "small",  "#F3BA2F", "#1A1A1A", None),
     ("Lego",                "small",  "#D01012", "#FFD700", "DK"),
     ("Lenovo",              "small",  "#E2231A", "#F0F0F0", "CN"),
-    ("Moët & Chandon",      "small",  "#C6A84B", "#1A1A1A", "FR"),
+    ("Moët",      "small",  "#C6A84B", "#1A1A1A", "FR"),
     ("Bridgestone",         "small",  "#CC0000", "#1A1A1A", "JP"),
     ("Brembo",              "small",  "#E32119", "#F0F0F0", "IT"),
     ("Corona",              "small",  "#003087", "#FFCC00", "MX"),

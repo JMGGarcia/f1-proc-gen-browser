@@ -65,6 +65,27 @@
 </div>
 
 <h2>CAREER HISTORY</h2>
+{% if liked_track_names or disliked_track_names %}
+<h2>CIRCUIT PREFERENCES</h2>
+<div class="stat-row">
+  {% if liked_track_names %}
+  <div class="stat-card">
+    <div class="label" style="color:#4caf50">Favourite Circuits</div>
+    {% for name in liked_track_names %}
+    <div class="value" style="font-size:13px;color:#4caf50">+{{ name }}</div>
+    {% endfor %}
+  </div>
+  {% endif %}
+  {% if disliked_track_names %}
+  <div class="stat-card">
+    <div class="label" style="color:#f44336">Disliked Circuits</div>
+    {% for name in disliked_track_names %}
+    <div class="value" style="font-size:13px;color:#f44336">−{{ name }}</div>
+    {% endfor %}
+  </div>
+  {% endif %}
+</div>
+{% endif %}
 {% if career %}
 <table class="data-table">
   <thead>

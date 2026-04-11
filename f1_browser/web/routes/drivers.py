@@ -2,7 +2,7 @@ from fastapi import APIRouter, Depends, HTTPException, Request
 from sqlalchemy import func
 from sqlalchemy.orm import Session
 
-from db.models import Driver, DriverSeasonStats, Engine, Race, RaceResult, Season, Team
+from db.models import Driver, DriverSeasonStats, Engine, Race, RaceResult, Season, Team, Track
 from db.session import get_db_session
 from sim.flags import NATIONALITY_FLAGS
 from web.templates_env import templates
@@ -128,9 +128,23 @@ def driver_detail(driver_id: int, request: Request, db: Session = Depends(get_db
         .count()
     )
 
+    # Circuit preferences
+    liked_track_names = []
+    disliked_track_names = []
+    if driver.liked_tracks:
+        ids = [int(x) for x in driver.liked_tracks.split(",") if x.strip()]
+        tracks = db.query(Track).filter(Track.id.in_(ids)).all()
+        liked_track_names = [t.name for t in tracks]
+    if driver.disliked_tracks:
+        ids = [int(x) for x in driver.disliked_tracks.split(",") if x.strip()]
+        tracks = db.query(Track).filter(Track.id.in_(ids)).all()
+        disliked_track_names = [t.name for t in tracks]
+
     return templates.TemplateResponse(request, "driver_detail.html", {
         "driver": driver,
         "career": career,
         "total_wins": total_wins,
         "total_podiums": total_podiums,
+        "liked_track_names": liked_track_names,
+        "disliked_track_names": disliked_track_names,
     })

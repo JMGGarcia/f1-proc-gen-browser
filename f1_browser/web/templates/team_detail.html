@@ -33,17 +33,11 @@
     <div class="label">Drivers</div>
     <div class="value">{{ unique_drivers | length }}</div>
   </div>
-  {% if latest_stats and latest_stats.direction_avg is not none %}
+  {% if latest_stats and latest_stats.cto_development is not none %}
   <div class="stat-card">
     <div class="label">Management</div>
-    <div class="value">{{ (latest_stats.direction_avg * 100) | int }}</div>
+    <div class="value">{{ latest_stats.cto_development }}</div>
   </div>
-  {% if latest_stats.direction_years is not none %}
-  <div class="stat-card">
-    <div class="label">Mgmt tenure</div>
-    <div class="value">{{ latest_stats.direction_years }}y</div>
-  </div>
-  {% endif %}
   {% endif %}
   {% if finance_level is defined %}
   <div class="stat-card" title="Finance base: {{ finance_base }}">
@@ -92,23 +86,57 @@
     </div>
   </div>
   {% endif %}
+  {% if team.engine_contract is not none %}
+  <div class="stat-card">
+    <div class="label">Engine Contract</div>
+    <div class="value">{{ team.engine_contract }} yr(s)</div>
+  </div>
+  {% endif %}
 </div>
 
-{% if latest_stats and latest_stats.direction_development is not none %}
-<h2>TEAM DIRECTION</h2>
+{% if chiefs_by_role %}
+<h2>TEAM CHIEFS</h2>
 <div class="stat-row">
+  {% set owner = chiefs_by_role.get('owner') %}
+  {% set cto = chiefs_by_role.get('cto') %}
+  {% set cmo = chiefs_by_role.get('cmo') %}
+  {% set cpo = chiefs_by_role.get('cpo') %}
+  {% if owner %}
   <div class="stat-card">
-    <div class="label">Development</div>
-    <div class="value">{{ (latest_stats.direction_development * 100) | int }}</div>
+    <div class="label">Owner</div>
+    <div class="value" style="font-size:13px"><a href="/staff/{{ owner.id }}">{{ owner.first_name }} {{ owner.last_name }}</a></div>
+    <div class="label" style="margin-top:4px">{{ flag(owner.nationality) }} Age {{ owner.age }}</div>
+    <div class="label">Vision {{ owner.skill_primary }}</div>
+    <div class="label">Contract: {% if owner.contract_years == -1 %}Permanent{% else %}{{ owner.contract_years }} yr(s){% endif %}</div>
   </div>
+  {% endif %}
+  {% if cto %}
   <div class="stat-card">
-    <div class="label">Driver Scouting</div>
-    <div class="value">{{ (latest_stats.direction_scouting * 100) | int }}</div>
+    <div class="label">CTO</div>
+    <div class="value" style="font-size:13px"><a href="/staff/{{ cto.id }}">{{ cto.first_name }} {{ cto.last_name }}</a></div>
+    <div class="label" style="margin-top:4px">{{ flag(cto.nationality) }} Age {{ cto.age }}</div>
+    <div class="label">Dev {{ cto.skill_primary }} / EngSc {{ cto.skill_secondary if cto.skill_secondary is not none else '—' }}</div>
+    <div class="label">Contract: {% if cto.contract_years == -1 %}Permanent{% else %}{{ cto.contract_years }} yr(s){% endif %}</div>
   </div>
+  {% endif %}
+  {% if cpo %}
   <div class="stat-card">
-    <div class="label">Engine Scouting</div>
-    <div class="value">{{ (latest_stats.direction_eng_scouting * 100) | int }}</div>
+    <div class="label">CPO</div>
+    <div class="value" style="font-size:13px"><a href="/staff/{{ cpo.id }}">{{ cpo.first_name }} {{ cpo.last_name }}</a></div>
+    <div class="label" style="margin-top:4px">{{ flag(cpo.nationality) }} Age {{ cpo.age }}</div>
+    <div class="label">Scouting {{ cpo.skill_primary }}</div>
+    <div class="label">Contract: {% if cpo.contract_years == -1 %}Permanent{% else %}{{ cpo.contract_years }} yr(s){% endif %}</div>
   </div>
+  {% endif %}
+  {% if cmo %}
+  <div class="stat-card">
+    <div class="label">CMO</div>
+    <div class="value" style="font-size:13px"><a href="/staff/{{ cmo.id }}">{{ cmo.first_name }} {{ cmo.last_name }}</a></div>
+    <div class="label" style="margin-top:4px">{{ flag(cmo.nationality) }} Age {{ cmo.age }}</div>
+    <div class="label">Marketing {{ cmo.skill_primary }}</div>
+    <div class="label">Contract: {% if cmo.contract_years == -1 %}Permanent{% else %}{{ cmo.contract_years }} yr(s){% endif %}</div>
+  </div>
+  {% endif %}
 </div>
 {% endif %}
 
@@ -116,15 +144,17 @@
 <h2>CURRENT ROSTER</h2>
 <table class="data-table">
   <thead>
-    <tr><th>Driver</th><th>Nat</th><th class="num">Age</th><th class="num">Skill</th></tr>
+    <tr><th>Driver</th><th>Nat</th><th class="num">Age</th><th class="num">Skill</th><th class="num">Contract</th></tr>
   </thead>
   <tbody>
     {% for drv in current_drivers %}
+    {% set contract = team.driver_contract_1 if loop.index == 1 else team.driver_contract_2 %}
     <tr>
       <td><a href="/drivers/{{ drv.id }}">{{ drv.first_name }} {{ drv.last_name }}</a></td>
       <td class="flag">{{ drv.flag }}</td>
       <td class="num">{{ drv.current_age }}</td>
       <td class="num">{{ drv.current_skill }}</td>
+      <td class="num">{% if contract is not none %}{{ contract }} yr(s){% else %}—{% endif %}</td>
     </tr>
     {% endfor %}
   </tbody>
@@ -171,9 +201,9 @@
       </td>
       <td class="num">{{ (entry.chassis * 100) | int }}</td>
       <td class="num">{{ entry.engine_power if entry.engine_power is not none else '—' }}</td>
-      <td class="num">{{ (entry.direction_development * 100) | int if entry.direction_development is not none else (entry.direction_avg * 100) | int }}</td>
-      <td class="num">{{ (entry.direction_scouting * 100) | int if entry.direction_scouting is not none else '—' }}</td>
-      <td class="num">{{ (entry.direction_eng_scouting * 100) | int if entry.direction_eng_scouting is not none else '—' }}</td>
+      <td class="num">{{ entry.cto_development if entry.cto_development is not none else '—' }}</td>
+      <td class="num">{{ entry.cpo_scouting if entry.cpo_scouting is not none else '—' }}</td>
+      <td class="num">{{ entry.cto_eng_scouting if entry.cto_eng_scouting is not none else '—' }}</td>
       <td class="pos">{{ entry.championship_position if entry.championship_position else '—' }}</td>
       <td class="pts">{{ entry.total_points }}</td>
     </tr>

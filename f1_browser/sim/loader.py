@@ -1,12 +1,4 @@
-"""
-Reconstruct in-memory sim objects from the existing database state so the
-WorldRunner can continue simulating seasons beyond the initial run.
-
-Caveats (acceptable approximations):
-- Direction development/scouting stats are approximated from stored direction_avg.
-- Driver/engine contract years default to 3 (mid-range value).
-- Direction position_history is rebuilt from the last HISTORY_YEARS TeamSeasonStats.
-"""
+"""Reconstruct in-memory sim objects from the existing database state."""
 from __future__ import annotations
 
 import random
@@ -16,7 +8,7 @@ from db import models as m
 from sim.constants import SimulationConstants
 from sim.drivers import Driver, DriverGenerator
 from sim.sponsors import Sponsor
-from sim.teams import Direction, Engine, OwnerType, Team
+from sim.teams import Chief, ChiefGenerator, ChiefRole, Engine, OwnerType, Team
 from sim.tracks import Track
 
 
@@ -96,6 +88,10 @@ def load_world_from_db(db: Session, names_dir: str = "./names"):
         )
         drv.base_skill = skill
         drv.top_skill = top_skill
+        if d.liked_tracks:
+            drv.liked_track_ids = [int(x) for x in d.liked_tracks.split(",") if x.strip()]
+        if d.disliked_tracks:
+            drv.disliked_track_ids = [int(x) for x in d.disliked_tracks.split(",") if x.strip()]
         drivers.append(drv)
         driver_map[d.id] = drv
 
@@ -109,9 +105,6 @@ def load_world_from_db(db: Session, names_dir: str = "./names"):
             .first()
         )
         chassis = ts.chassis if ts else 0.5
-
-        # Reconstruct direction
-        direction = _rebuild_direction(db, t.id, ts, latest_season_num)
 
         # Find current engine (from latest TeamSeasonStats)
         engine = engine_map.get(ts.engine_id) if (ts and ts.engine_id) else None
@@ -137,12 +130,15 @@ def load_world_from_db(db: Session, names_dir: str = "./names"):
         team = Team(
             name=t.name,
             drivers=assigned_drivers,
-            driver_contracts=[3, 3],   # approximate
+            driver_contracts=[
+                t.driver_contract_1 if t.driver_contract_1 is not None else 3,
+                t.driver_contract_2 if t.driver_contract_2 is not None else 3,
+            ],
             chassis=chassis,
             engine=engine if engine else _fallback_engine(engines),
             color_primary=t.color_primary,
             color_secondary=t.color_secondary,
-            engine_contract=3,         # approximate
+            engine_contract=t.engine_contract if t.engine_contract is not None else 3,
             sponsor=sponsor,
             sponsor_contract=sponsor_contract,
             db_id=t.id,
@@ -152,7 +148,6 @@ def load_world_from_db(db: Session, names_dir: str = "./names"):
             owner_sponsor=owner_sponsor,
             finance_base=t.finance_base if t.finance_base is not None else 2,
         )
-        team.direction = direction
         teams.append(team)
 
         # Wire back-references
@@ -164,33 +159,54 @@ def load_world_from_db(db: Session, names_dir: str = "./names"):
         if sponsor:
             sponsor.assign_team(team)
 
-    driver_gen = DriverGenerator(names_dir=names_dir)
-    return tracks, engines, teams, drivers, driver_gen, sponsors
-
-
-def _rebuild_direction(db: Session, team_id: int, latest_ts, latest_season_num: int) -> Direction:
-    direction = Direction()
-    if latest_ts:
-        avg = latest_ts.direction_avg
-        # Distribute avg equally across the three skill dimensions
-        direction.development = avg
-        direction.scouting = avg
-        direction.eng_scouting = avg
-    # Rebuild last N seasons' positions for firing logic
+    # ── Rebuild position_history for each team ───────────────────────────
     history_window = SimulationConstants.HISTORY_YEARS
-    past_stats = (
-        db.query(m.TeamSeasonStats)
-        .filter(
-            m.TeamSeasonStats.team_id == team_id,
-            m.TeamSeasonStats.championship_position.isnot(None),
+    for team in teams:
+        past_stats = (
+            db.query(m.TeamSeasonStats)
+            .filter(
+                m.TeamSeasonStats.team_id == team.db_id,
+                m.TeamSeasonStats.championship_position.isnot(None),
+            )
+            .order_by(m.TeamSeasonStats.season_id.desc())
+            .limit(history_window)
+            .all()
         )
-        .order_by(m.TeamSeasonStats.season_id.desc())
-        .limit(history_window)
-        .all()
-    )
-    direction.position_history = [s.championship_position for s in reversed(past_stats)]
-    direction.years = min(len(past_stats), 5)
-    return direction
+        team.position_history = [s.championship_position for s in reversed(past_stats)]
+
+    # ── Collect all non-retired chiefs (including free agents) ───────────
+    chief_gen = ChiefGenerator(names_dir=names_dir)
+    all_chiefs: list[Chief] = []
+    team_map_by_id = {team.db_id: team for team in teams}
+    db_active_chiefs = db.query(m.TeamChief).filter_by(retired=False).all()
+    for dc in db_active_chiefs:
+        chief = Chief(
+            db_id=dc.id,
+            role=dc.role,
+            first_name=dc.first_name or "",
+            last_name=dc.last_name,
+            country=dc.nationality,
+            age=dc.age,
+            skill_primary=dc.skill_primary,
+            skill_secondary=dc.skill_secondary,
+            contract_years=dc.contract_years,
+        )
+        assigned_team = team_map_by_id.get(dc.team_id) if dc.team_id else None
+        chief.team = assigned_team
+        all_chiefs.append(chief)
+        # Wire to team's role slot
+        if assigned_team is not None:
+            if dc.role == ChiefRole.OWNER:
+                assigned_team.owner = chief
+            elif dc.role == ChiefRole.CTO:
+                assigned_team.cto = chief
+            elif dc.role == ChiefRole.CMO:
+                assigned_team.cmo = chief
+            elif dc.role == ChiefRole.CPO:
+                assigned_team.cpo = chief
+
+    driver_gen = DriverGenerator(names_dir=names_dir)
+    return tracks, engines, teams, drivers, driver_gen, sponsors, chief_gen, all_chiefs
 
 
 def _fallback_engine(engines) -> Engine:

@@ -1,15 +1,16 @@
 from __future__ import annotations
 
+import os
 import random
-from typing import List, Optional, Tuple, TYPE_CHECKING
+from typing import Dict, List, Optional, Tuple, TYPE_CHECKING
 
 from sim.constants import SimulationConstants, TeamConstants
-from sim.countries import get_country
+from sim.countries import get_country, get_all_countries
 
 if TYPE_CHECKING:
     from sim.countries import Country
 
-from sim.drivers import Driver
+from sim.drivers import Driver, DriverGenerator
 from sim.sponsors import Sponsor
 
 
@@ -17,6 +18,156 @@ class OwnerType:
     INDIVIDUAL = "individual"
     ENGINE_SUPPLIER = "engine_supplier"
     SPONSOR = "sponsor"
+
+
+class ChiefRole:
+    OWNER = "owner"
+    CTO   = "cto"
+    CMO   = "cmo"
+    CPO   = "cpo"
+
+
+class Chief:
+    def __init__(
+        self,
+        role: str,
+        first_name: str,
+        last_name: str,
+        country: "Country | str | None",
+        age: int,
+        skill_primary: int,
+        skill_secondary: Optional[int] = None,
+        contract_years: int = 3,
+        db_id: int = 0,
+    ):
+        self.db_id = db_id
+        self.role = role
+        self.first_name = first_name
+        self.last_name = last_name
+        if isinstance(country, str):
+            self.country = get_country(country)
+        else:
+            self.country = country
+        self.age = age
+        self.skill_primary = skill_primary
+        self.skill_secondary = skill_secondary
+        self.contract_years = contract_years
+        self.retired = False
+        self.team: Optional["Team"] = None
+
+    @property
+    def nationality(self) -> str | None:
+        return self.country.code if self.country else None
+
+    @property
+    def name(self) -> str:
+        return f"{self.first_name} {self.last_name}"
+
+    def yearly_skill_update(self) -> None:
+        if random.random() < 0.33 and self.skill_primary < 100:
+            self.skill_primary += 1
+        if self.skill_secondary is not None and random.random() < 0.33 and self.skill_secondary < 100:
+            self.skill_secondary += 1
+
+    def tick_contract(self) -> None:
+        if self.contract_years > 0:
+            self.contract_years -= 1
+
+    def is_contract_expired(self) -> bool:
+        return self.contract_years == 0
+
+    def should_retire_as_free_agent(self) -> bool:
+        if self.age >= TeamConstants.CHIEF_RETIRE_AGE:
+            return True
+        if self.age >= 60 and random.random() < TeamConstants.CHIEF_RETIRE_PROB_60:
+            return True
+        return False
+
+
+class ChiefGenerator:
+    def __init__(self, names_dir: str = "./names"):
+        self.names_dir = names_dir
+        self._driver_gen = DriverGenerator(names_dir=names_dir)
+        self._name_structure = self._driver_gen.name_structure
+
+    def _pick_name(self, nat_code: str) -> Tuple[str, str]:
+        names = self._name_structure.get(nat_code)
+        if not names:
+            # Fallback to a random nationality
+            nat_code = random.choice(list(self._name_structure.keys()))
+            names = self._name_structure[nat_code]
+        first = random.choice(names["first"])
+        last = random.choice(names["last"])
+        return first, last
+
+    def generate_owner(
+        self, team_name: str, team_nationality: Optional[str], owner_type: str
+    ) -> Chief:
+        nat_code = team_nationality if team_nationality in self._name_structure else (
+            random.choice(list(self._name_structure.keys()))
+        )
+        first, last = self._pick_name(nat_code)
+        if owner_type == OwnerType.INDIVIDUAL:
+            last = team_name
+        age = random.randint(TeamConstants.CHIEF_GEN_MIN_AGE_OWNER, TeamConstants.CHIEF_GEN_MAX_AGE_OWNER)
+        skill = random.randint(TeamConstants.CHIEF_GEN_SKILL_MIN, TeamConstants.CHIEF_GEN_SKILL_MAX)
+        return Chief(
+            role=ChiefRole.OWNER,
+            first_name=first,
+            last_name=last,
+            country=get_country(nat_code),
+            age=age,
+            skill_primary=skill,
+            contract_years=-1,
+        )
+
+    def generate_owner_successor(self, predecessor: Chief) -> Chief:
+        nat_code = predecessor.nationality
+        if not nat_code or nat_code not in self._name_structure:
+            nat_code = random.choice(list(self._name_structure.keys()))
+        first, _ = self._pick_name(nat_code)
+        age = random.randint(
+            TeamConstants.CHIEF_GEN_MIN_AGE_OWNER,
+            TeamConstants.CHIEF_GEN_MAX_AGE_OWNER,
+        )
+        skill = random.randint(TeamConstants.CHIEF_GEN_SKILL_MIN, TeamConstants.CHIEF_SUCCESSOR_SKILL_MAX)
+        return Chief(
+            role=ChiefRole.OWNER,
+            first_name=first,
+            last_name=predecessor.last_name,
+            country=predecessor.country,
+            age=age,
+            skill_primary=skill,
+            contract_years=-1,
+        )
+
+    def _generate_staff_chief(self, role: str, nat_code: Optional[str], secondary: bool = False) -> Chief:
+        if not nat_code or nat_code not in self._name_structure:
+            nat_code = random.choice(list(self._name_structure.keys()))
+        first, last = self._pick_name(nat_code)
+        age = random.randint(TeamConstants.CHIEF_GEN_MIN_AGE, TeamConstants.CHIEF_GEN_MAX_AGE)
+        skill_p = random.randint(TeamConstants.CHIEF_GEN_SKILL_MIN, TeamConstants.CHIEF_GEN_SKILL_MAX)
+        skill_s = random.randint(TeamConstants.CHIEF_GEN_SKILL_MIN, TeamConstants.CHIEF_GEN_SKILL_MAX) if secondary else None
+        contract = random.randint(TeamConstants.CHIEF_CONTRACT_MIN, TeamConstants.CHIEF_CONTRACT_MAX)
+        return Chief(
+            role=role,
+            first_name=first,
+            last_name=last,
+            country=get_country(nat_code),
+            age=age,
+            skill_primary=skill_p,
+            skill_secondary=skill_s,
+            contract_years=contract,
+        )
+
+    def generate_cto(self, nat_code: Optional[str] = None) -> Chief:
+        return self._generate_staff_chief(ChiefRole.CTO, nat_code, secondary=True)
+
+    def generate_cmo(self, nat_code: Optional[str] = None) -> Chief:
+        return self._generate_staff_chief(ChiefRole.CMO, nat_code, secondary=False)
+
+    def generate_cpo(self, nat_code: Optional[str] = None) -> Chief:
+        return self._generate_staff_chief(ChiefRole.CPO, nat_code, secondary=False)
 
 
 class Engine:
@@ -36,6 +187,8 @@ class Engine:
         self.reliability = reliability
         self.color_primary = color_primary
         self.color_secondary = color_secondary
+        h = color_primary.lstrip("#")
+        self.rgb_primary: tuple[int, int, int] = (int(h[0:2], 16), int(h[2:4], 16), int(h[4:6], 16))
         
         # Handle both Country objects and string codes
         if isinstance(nationality, str):
@@ -63,60 +216,6 @@ class Engine:
             self.teams.remove(r_team)
         except ValueError:
             pass
-
-
-class Direction:
-    def __init__(self):
-        self.years = 0
-        self.development = random.random()
-        self.scouting = random.random()
-        self.eng_scouting = random.random()
-        self.position_history: List[int] = []
-
-    @property
-    def avg(self) -> float:
-        return (self.development + self.scouting + self.eng_scouting) / 3
-
-    @property
-    def avg_100(self) -> int:
-        return int(self.avg * 100)
-
-    def yearly_update(self, position: int, total_teams: int) -> bool:
-        """Returns True if direction changed (team principal fired)."""
-        if self.years < 2:
-            average_position = 0.0
-        else:
-            self.position_history.append(position)
-            if len(self.position_history) > SimulationConstants.HISTORY_YEARS:
-                self.position_history.pop(0)
-            average_position = sum(self.position_history) / len(self.position_history)
-
-        if (
-            (average_position == total_teams and self.years >= 3)
-            or (average_position > (total_teams * 3 / 4) and self.years >= 5 and position > (total_teams * 3 / 4))
-            or (average_position > (total_teams / 2) and self.years >= 9 and position > (total_teams / 2))
-        ):
-            self.years = 0
-            self.development = random.random()
-            self.scouting = random.random()
-            self.eng_scouting = random.random()
-            self.position_history = []
-            return True
-
-        self.years += 1
-        change = SimulationConstants.YEARLY_CHANGE
-        for attr in ("development", "scouting", "eng_scouting"):
-            val = getattr(self, attr) + random.random() * 2 * change - change
-            setattr(self, attr, min(1.0, max(0.0, val)))
-        return False
-
-    def get_stats(self) -> Tuple[int, int, int, int]:
-        return (
-            int(self.avg * 100),
-            int(self.development * 100),
-            int(self.scouting * 100),
-            int(self.eng_scouting * 100),
-        )
 
 
 class Team:
@@ -154,8 +253,13 @@ class Team:
         self.engine_contract = engine_contract
         self.sponsor: Optional[Sponsor] = sponsor
         self.sponsor_contract: int = sponsor_contract
-        self.direction = Direction()
-        
+
+        # Chief slots
+        self.owner: Optional[Chief] = None
+        self.cto: Optional[Chief] = None
+        self.cmo: Optional[Chief] = None
+        self.cpo: Optional[Chief] = None
+
         # Handle both Country objects and string codes
         if isinstance(nationality, str):
             self.country = get_country(nationality)
@@ -166,11 +270,36 @@ class Team:
         self.owner_engine: Optional[Engine] = owner_engine
         self.owner_sponsor: Optional[Sponsor] = owner_sponsor
         self.finance_base: int = finance_base
+        self.position_history: List[int] = []
     
     @property
     def nationality(self) -> str | None:
         """Return nationality code for database storage."""
         return self.country.code if self.country else None
+
+    @property
+    def cto_development(self) -> float:
+        if self.cto is not None:
+            return self.cto.skill_primary / 100.0
+        return TeamConstants.CHIEF_VACANCY_FLOOR
+
+    @property
+    def cto_eng_scouting(self) -> float:
+        if self.cto is not None and self.cto.skill_secondary is not None:
+            return self.cto.skill_secondary / 100.0
+        return TeamConstants.CHIEF_VACANCY_FLOOR
+
+    @property
+    def cpo_scouting(self) -> float:
+        if self.cpo is not None:
+            return self.cpo.skill_primary / 100.0
+        return TeamConstants.CHIEF_VACANCY_FLOOR
+
+    @property
+    def owner_scouting_factor(self) -> float:
+        if self.owner is not None:
+            return 0.4 + (self.owner.skill_primary / 100.0) * 0.6
+        return 0.4
 
     @property
     def avg_skill_100(self) -> int:

@@ -183,6 +183,8 @@ def season_detail(season_num: int, request: Request, db: Session = Depends(get_d
             ts.engine_power = int(eng_s.power * 100) if eng_s else None
         else:
             ts.engine_power = None
+        mgmt_vals = [v for v in (ts.owner_skill, ts.cto_development, ts.cpo_scouting) if v is not None]
+        ts.direction_avg = int(sum(mgmt_vals) / len(mgmt_vals)) if mgmt_vals else None
 
     # Batch-fetch race winners
     race_ids = [r.id for r in races]
