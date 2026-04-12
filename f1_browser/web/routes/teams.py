@@ -178,7 +178,7 @@ def team_detail(team_id: int, request: Request, db: Session = Depends(get_db_ses
             drv = curr_drivers_by_id.get(cs.driver_id)
             if drv:
                 drv.flag = NATIONALITY_FLAGS.get(drv.nationality, "")
-                drv.current_skill = int(cs.skill * 100)
+                drv.current_skill = int((cs.effective_skill or cs.skill) * 100)
                 drv.current_age = cs.age
                 current_drivers.append(drv)
 

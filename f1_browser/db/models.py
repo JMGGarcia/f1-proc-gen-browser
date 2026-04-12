@@ -159,6 +159,7 @@ class DriverSeasonStats(Base):
     age = Column(Integer, nullable=False)
     skill = Column(Float, nullable=False)
     top_skill = Column(Float, nullable=False)
+    effective_skill = Column(Float, nullable=True)
     total_points = Column(Integer, nullable=False, default=0)
     championship_position = Column(Integer, nullable=True)
     wins = Column(Integer, nullable=False, default=0)

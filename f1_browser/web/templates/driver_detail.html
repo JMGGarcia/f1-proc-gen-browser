@@ -35,7 +35,12 @@
   {% if driver.skill %}
   <div class="stat-card" title="Current skill (0–100)">
     <div class="label">Skill</div>
-    <div class="value" style="color:{{ stat_color(driver.skill) }}">{{ (driver.skill * 100) | int }}</div>
+    <div class="value" style="color:{{ stat_color(driver.effective_skill) }}">
+      {{ (driver.effective_skill * 100) | int }}
+      {% if (driver.effective_skill - driver.skill) | abs >= 0.005 %}
+      <span style="color:var(--muted);font-size:13px">({{ (driver.skill * 100) | int }})</span>
+      {% endif %}
+    </div>
   </div>
   {% endif %}
   {% if career %}
@@ -51,20 +56,40 @@
   {% if driver.loyalty is not none %}
   <div class="stat-card" title="How much the driver values staying at the same team">
     <div class="label">Loyalty</div>
-    <div class="value" style="color:{{ stat_color(driver.loyalty) }}">{{ (driver.loyalty * 100) | int }}</div>
+    <div class="value" style="color:{{ stat_color(driver.effective_loyalty) }}">
+      {{ (driver.effective_loyalty * 100) | int }}
+      {% if (driver.effective_loyalty - driver.loyalty) | abs >= 0.005 %}
+      <span style="color:var(--muted);font-size:13px">({{ (driver.loyalty * 100) | int }})</span>
+      {% endif %}
+    </div>
   </div>
   <div class="stat-card" title="How much the driver values team finances">
     <div class="label">Greed</div>
-    <div class="value" style="color:{{ stat_color(driver.greed) }}">{{ (driver.greed * 100) | int }}</div>
+    <div class="value" style="color:{{ stat_color(driver.effective_greed) }}">
+      {{ (driver.effective_greed * 100) | int }}
+      {% if (driver.effective_greed - driver.greed) | abs >= 0.005 %}
+      <span style="color:var(--muted);font-size:13px">({{ (driver.greed * 100) | int }})</span>
+      {% endif %}
+    </div>
   </div>
   <div class="stat-card" title="How much the driver values car quality">
     <div class="label">Ambition</div>
-    <div class="value" style="color:{{ stat_color(driver.ambition) }}">{{ (driver.ambition * 100) | int }}</div>
+    <div class="value" style="color:{{ stat_color(driver.effective_ambition) }}">
+      {{ (driver.effective_ambition * 100) | int }}
+      {% if (driver.effective_ambition - driver.ambition) | abs >= 0.005 %}
+      <span style="color:var(--muted);font-size:13px">({{ (driver.ambition * 100) | int }})</span>
+      {% endif %}
+    </div>
   </div>
   {% if driver.likability is not none %}
   <div class="stat-card" title="How likable the driver is to sponsors and fans">
     <div class="label">Likability</div>
-    <div class="value" style="color:{{ stat_color(driver.likability) }}">{{ (driver.likability * 100) | int }}</div>
+    <div class="value" style="color:{{ stat_color(driver.effective_likability) }}">
+      {{ (driver.effective_likability * 100) | int }}
+      {% if (driver.effective_likability - driver.likability) | abs >= 0.005 %}
+      <span style="color:var(--muted);font-size:13px">({{ (driver.likability * 100) | int }})</span>
+      {% endif %}
+    </div>
   </div>
   {% endif %}
   {% endif %}
@@ -144,7 +169,12 @@
         {% if entry.engine_obj %}{{ engine_badge(entry.engine_obj) }}{% else %}—{% endif %}
       </td>
       <td class="num">{{ entry.age }}</td>
-      <td class="num" style="color:{{ stat_color(entry.skill) }}">{{ (entry.skill * 100) | int }}</td>
+      <td class="num" style="color:{{ stat_color(entry.skill) }}">
+        {{ entry.display_effective_skill }}
+        {% if entry.skill_was_modified %}
+        <span style="color:var(--muted);font-size:11px">({{ (entry.skill * 100) | int }})</span>
+        {% endif %}
+      </td>
       <td class="pos">{{ entry.championship_position if entry.championship_position else '—' }}</td>
       <td class="pts">{{ entry.total_points }}</td>
     </tr>

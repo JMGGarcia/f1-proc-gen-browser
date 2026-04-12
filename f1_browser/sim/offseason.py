@@ -356,6 +356,9 @@ class OffSeasonManager:
         driver = team.release_driver(idx)
         if driver is None:
             return
+        if driver not in self.drivers:
+            # Already event-retired this offseason; slot is now freed, no further action needed
+            return
 
         retire = driver.age > DriverConstants.RETIREMENT_AGE or (
             driver.age > DriverConstants.EARLY_RETIREMENT_AGE
@@ -609,6 +612,15 @@ class OffSeasonManager:
             "retired_season": season_num,
         })
         self.drivers.remove(driver)
+        # Evict from team slot so the seat opens up for the replacement
+        if driver.team is not None:
+            team = driver.team
+            for i, slot_driver in enumerate(team.drivers):
+                if slot_driver is driver:
+                    team.drivers[i] = None
+                    team.driver_contracts[i] = -1
+                    break
+            driver.team = None
         # Generate a replacement
         track_ids = [t.db_id for t in self.tracks if t.db_id]
         new_driver = self.driver_generator.generate_driver(track_ids=track_ids)

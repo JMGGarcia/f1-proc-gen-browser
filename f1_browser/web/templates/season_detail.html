@@ -44,7 +44,7 @@
       </td>
       <td>{% if ds.sponsor_obj %}{{ sponsor_badge(ds.sponsor_obj) }}{% else %}—{% endif %}</td>
       <td>{% if ds.engine_obj %}{{ engine_badge(ds.engine_obj) }}{% else %}—{% endif %}</td>
-      <td class="num">{{ (ds.skill * 100) | int }}</td>
+      <td class="num">{{ ds.display_skill }}</td>
       <td class="pts">{{ ds.total_points }}</td>
     </tr>
     {% endfor %}

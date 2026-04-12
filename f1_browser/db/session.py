@@ -27,6 +27,14 @@ SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 
 def init_db():
     Base.metadata.create_all(bind=engine)
+    # Migrations for columns added after initial schema
+    from sqlalchemy import text
+    with engine.connect() as conn:
+        try:
+            conn.execute(text("ALTER TABLE driver_season_stats ADD COLUMN effective_skill REAL"))
+            conn.commit()
+        except Exception:
+            pass  # already exists
 
 
 @contextmanager

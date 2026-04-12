@@ -7,6 +7,7 @@ from db.session import get_db_session
 from sim.driver_events import get_event_def_by_id
 from sim.flags import NATIONALITY_FLAGS
 from web import sim_state
+from web.effective_stats import compute_modifier_sums
 from web.routes._event_helpers import get_entity_events
 from web.templates_env import templates
 
@@ -56,12 +57,36 @@ def drivers_list(request: Request, db: Session = Depends(get_db_session)):
     team_ids = list(set(team_db_id_by_driver_id.values()))
     teams_by_id = {t.id: t for t in db.query(Team).filter(Team.id.in_(team_ids)).all()}
 
+    # Build runner driver map for effective skill (includes active modifiers)
+    runner_drivers_by_id: dict[int, object] = {}
+    if runner is not None:
+        try:
+            runner_drivers_by_id = {drv.db_id: drv for drv in runner.drivers}
+        except Exception:
+            pass
+
+    # For drivers without runner data, compute modifier sums from DB
+    needs_mod_sum = [d.id for d in drivers if d.id not in runner_drivers_by_id]
+    modifier_sums = compute_modifier_sums(db, needs_mod_sum) if needs_mod_sum else {}
+
     for d in drivers:
         db_team_id = team_db_id_by_driver_id.get(d.id)
         d.current_team = teams_by_id.get(db_team_id) if db_team_id else None
         d.display_age = d.age or "—"
-        d.display_skill = int(d.skill * 100) if d.skill is not None else "—"
         d.flag = NATIONALITY_FLAGS.get(d.nationality, "")
+
+        runner_drv = runner_drivers_by_id.get(d.id)
+        if runner_drv is not None:
+            effective = runner_drv.effective_skill
+            base = runner_drv.skill
+        else:
+            skill_mod = modifier_sums.get(d.id, {}).get("skill", 0.0)
+            base = d.skill or 0.0
+            effective = max(0.0, min(1.0, base + skill_mod))
+
+        d.display_skill = int(effective * 100) if d.skill is not None else "—"
+        d.display_base_skill = int(base * 100) if d.skill is not None else None
+        d.has_skill_modifier = d.skill is not None and abs(effective - base) >= 0.005
 
     drivers_with_team = [d for d in drivers if d.current_team]
     drivers_without_team = [d for d in drivers if not d.current_team]
@@ -173,6 +198,27 @@ def driver_detail(driver_id: int, request: Request, db: Session = Depends(get_db
         defn = get_event_def_by_id(mod.event_def_id) or {}
         desc_template = defn.get("description", "")
         mod.display_description = desc_template.replace("{driver}", driver_full_name) if desc_template else ""
+
+    # Compute effective stats from active modifiers
+    active_mods = [m for m in modifiers if m.active]
+    def _sum_mod(attr: str) -> float:
+        return sum(m.parsed_modifiers.get(attr, 0.0) for m in active_mods)
+
+    driver.effective_skill = max(0.0, min(1.0, (driver.skill or 0.0) + _sum_mod("skill")))
+    driver.effective_loyalty = max(0.0, min(1.0, (driver.loyalty or 0.0) + _sum_mod("loyalty")))
+    driver.effective_greed = max(0.0, min(1.0, (driver.greed or 0.0) + _sum_mod("greed")))
+    driver.effective_ambition = max(0.0, min(1.0, (driver.ambition or 0.0) + _sum_mod("ambition")))
+    driver.effective_likability = max(0.0, min(1.0, (driver.likability or 0.0) + _sum_mod("likability")))
+
+    for entry in career:
+        if entry.effective_skill is not None:
+            entry.display_effective_skill = int(entry.effective_skill * 100)
+        else:
+            entry.display_effective_skill = int(entry.skill * 100) if entry.skill else None
+        entry.skill_was_modified = (
+            entry.effective_skill is not None
+            and abs(entry.effective_skill - entry.skill) >= 0.005
+        )
 
     return templates.TemplateResponse(request, "driver_detail.html", {
         "driver": driver,

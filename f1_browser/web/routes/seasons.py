@@ -108,7 +108,7 @@ def seasons_list(request: Request, db: Session = Depends(get_db_session)):
             "season": s,
             "driver": driver_obj,
             "driver_flag": NATIONALITY_FLAGS.get(driver_obj.nationality, "") if driver_obj else "",
-            "driver_skill": int(drv_stats.skill * 100) if drv_stats else None,
+            "driver_skill": int((drv_stats.effective_skill or drv_stats.skill) * 100) if drv_stats else None,
             "driver_team": drv_team_obj,
             "driver_engine": drv_engine_obj,
             "driver_engine_power": drv_engine_power,
@@ -193,6 +193,7 @@ def season_detail(season_num: int, request: Request, db: Session = Depends(get_d
         ds.driver_flag = NATIONALITY_FLAGS.get(ds.driver_obj.nationality, "") if ds.driver_obj else ""
         ts_row = ts_by_team_id.get(ds.team_id)
         ds.sponsor_obj = ts_sponsors.get(ts_row.sponsor_id) if ts_row and ts_row.sponsor_id else None
+        ds.display_skill = int((ds.effective_skill or ds.skill) * 100) if ds.skill else "—"
 
     # Batch-fetch race winners
     race_ids = [r.id for r in races]

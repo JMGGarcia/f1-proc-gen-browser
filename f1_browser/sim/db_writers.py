@@ -86,6 +86,7 @@ def write_season_stats(db, engines, season_id: int, race_records, sorted_drivers
             age=driver.age,
             skill=driver.skill,
             top_skill=driver.top_skill,
+            effective_skill=driver.effective_skill,
             total_points=driver_points.get(driver, 0),
             championship_position=pos,
             wins=win_counts.get(driver.db_id, 0),
