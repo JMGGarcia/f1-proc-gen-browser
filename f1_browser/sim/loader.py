@@ -153,9 +153,9 @@ def load_world_from_db(db: Session, names_dir: str = "./names"):
         teams.append(team)
 
         # Wire back-references
-        for drv in assigned_drivers:
+        for idx, drv in enumerate(assigned_drivers):
             if drv:
-                drv.team = team
+                team.assign_driver(drv, idx)
         if engine:
             engine.add_team(team)
         if sponsor:
@@ -177,6 +177,7 @@ def load_world_from_db(db: Session, names_dir: str = "./names"):
         team.position_history = [s.championship_position for s in reversed(past_stats)]
 
     # ── Collect all non-retired chiefs (including free agents) ───────────
+    driver_gen = DriverGenerator(names_dir=names_dir)
     chief_gen = ChiefGenerator(names_dir=names_dir, name_structure=driver_gen.name_structure)
     all_chiefs: list[Chief] = []
     team_map_by_id = {team.db_id: team for team in teams}
@@ -207,7 +208,6 @@ def load_world_from_db(db: Session, names_dir: str = "./names"):
             elif dc.role == ChiefRole.CPO:
                 assigned_team.cpo = chief
 
-    driver_gen = DriverGenerator(names_dir=names_dir)
     return tracks, engines, teams, drivers, driver_gen, sponsors, chief_gen, all_chiefs
 
 

@@ -43,7 +43,7 @@ def is_in_race() -> bool:
     """Return True if a race lap iterator is currently active."""
     with _runner_lock:
         runner = _runner
-    return runner is not None and runner._current_lap_iter is not None
+    return runner is not None and runner.is_race_active()
 
 
 def register(runner) -> None:

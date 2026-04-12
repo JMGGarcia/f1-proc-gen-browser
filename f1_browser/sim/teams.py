@@ -345,3 +345,16 @@ class Team:
 
     def are_driver_contracts_valid(self) -> Tuple[bool, bool]:
         return self.driver_contracts[0] != 0, self.driver_contracts[1] != 0
+
+    def assign_driver(self, driver: "Driver", slot: int) -> None:
+        self.drivers[slot] = driver
+        driver.team = self
+
+    def release_driver(self, slot: int) -> Optional["Driver"]:
+        driver = self.drivers[slot]
+        if driver is None:
+            return None
+        self.drivers[slot] = None
+        self.driver_contracts[slot] = -1
+        driver.team = None
+        return driver

@@ -283,8 +283,8 @@ def seed_world(db, names_dir: str = "./names") -> Tuple[
         teams.append(team)
         engine.add_team(team)
         team_sponsor.assign_team(team)
-        drv1.team = team
-        drv2.team = team
+        team.assign_driver(drv1, 0)
+        team.assign_driver(drv2, 1)
 
         db_team = m.Team(
             name=team_name, color_primary=cp, color_secondary=cs, nationality=nat,
