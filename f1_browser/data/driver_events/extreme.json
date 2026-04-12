@@ -37,5 +37,262 @@
     "weight": 1,
     "modifiers": { "likability": 0.35 },
     "conditions": { "excludes_events": ["fan_favourite", "career_ending_scandal"] }
+  },
+
+  {
+    "id": "eagle_eyes",
+    "name": "Eagle Eyes",
+    "description": "{driver} developed unnaturally sharp vision. Mechanics swear their eyes flash gold in low light.",
+    "type": "permanent",
+    "weight": 1,
+    "modifiers": { "skill": 0.08, "likability": -0.10 },
+    "conditions": { "excludes_events": ["eagle_eyes", "extra_eye", "eye_surgery"] }
+  },
+  {
+    "id": "second_head",
+    "name": "Second Head",
+    "description": "{driver} grew a second head during the offseason. It disagrees with every racing decision and has strong opinions on tyre strategy.",
+    "type": "permanent",
+    "weight": 1,
+    "modifiers": { "skill": -0.08, "ambition": 0.10, "likability": -0.25 },
+    "conditions": { "excludes_events": ["second_head"] }
+  },
+  {
+    "id": "third_arm",
+    "name": "Third Arm",
+    "description": "{driver} sprouted a third arm from their left shoulder. Gear changes have never been faster, but handshakes have become awkward.",
+    "type": "permanent",
+    "weight": 1,
+    "modifiers": { "skill": 0.10, "likability": -0.15 },
+    "conditions": { "excludes_events": ["third_arm", "tentacle_arm"] }
+  },
+  {
+    "id": "iron_skin",
+    "name": "Iron Skin",
+    "description": "{driver}'s skin hardened to an unnatural degree. They shrug off crashes but can barely feel the steering wheel.",
+    "type": "permanent",
+    "weight": 1,
+    "modifiers": { "skill": -0.06, "likability": -0.08 },
+    "conditions": { "excludes_events": ["iron_skin", "luminous_skin"] }
+  },
+  {
+    "id": "enormous_growth",
+    "name": "Enormous Growth",
+    "description": "{driver} experienced an inexplicable growth spurt. The cockpit had to be rebuilt and they still don't fit properly.",
+    "type": "permanent",
+    "weight": 1,
+    "modifiers": { "skill": -0.10, "likability": -0.05 },
+    "conditions": { "excludes_events": ["enormous_growth"] }
+  },
+  {
+    "id": "tentacle_arm",
+    "name": "Tentacle Arm",
+    "description": "{driver}'s left arm has become... flexible in ways medical science cannot explain. The FIA is still debating whether it's legal.",
+    "type": "permanent",
+    "weight": 1,
+    "modifiers": { "skill": 0.08, "likability": -0.18 },
+    "conditions": { "excludes_events": ["tentacle_arm", "third_arm"] }
+  },
+  {
+    "id": "luminous_skin",
+    "name": "Luminous Skin",
+    "description": "{driver}'s skin developed a faint ethereal glow. Night-race marshals appreciate the visibility. Everyone else is unnerved.",
+    "type": "permanent",
+    "weight": 1,
+    "modifiers": { "likability": -0.12 },
+    "conditions": { "excludes_events": ["luminous_skin", "iron_skin"] }
+  },
+  {
+    "id": "bone_density",
+    "name": "Incredible Bone Density",
+    "description": "{driver}'s bones became incredibly dense overnight. They are now the heaviest driver on the grid by a worrying margin.",
+    "type": "permanent",
+    "weight": 1,
+    "modifiers": { "skill": -0.07 },
+    "conditions": { "excludes_events": ["bone_density"] }
+  },
+  {
+    "id": "prehensile_toes",
+    "name": "Prehensile Toes",
+    "description": "{driver}'s feet became fully prehensile. They operate pedals with disturbing precision and occasionally pick things up off the floor.",
+    "type": "permanent",
+    "weight": 1,
+    "modifiers": { "skill": 0.06, "likability": -0.10 },
+    "conditions": { "excludes_events": ["prehensile_toes"] }
+  },
+  {
+    "id": "extra_eye",
+    "name": "Third Eye",
+    "description": "{driver} developed a third eye on their forehead. Peripheral vision has never been better. Helmet fitting has never been worse.",
+    "type": "permanent",
+    "weight": 1,
+    "modifiers": { "skill": 0.07, "likability": -0.18 },
+    "conditions": { "excludes_events": ["extra_eye", "eagle_eyes"] }
+  },
+  {
+    "id": "venomous_spit",
+    "name": "Venomous Spit",
+    "description": "{driver} developed the ability to spit mildly corrosive venom. Mechanics have learned to stand well back during debriefs.",
+    "type": "permanent",
+    "weight": 1,
+    "modifiers": { "likability": -0.22, "loyalty": -0.08 },
+    "conditions": { "excludes_events": ["venomous_spit"] }
+  },
+  {
+    "id": "magnetic_hands",
+    "name": "Magnetic Hands",
+    "description": "{driver}'s hands became slightly magnetic. Watches stop, phones die, but their grip on the wheel is extraordinary.",
+    "type": "permanent",
+    "weight": 1,
+    "modifiers": { "skill": 0.06, "likability": -0.08 },
+    "conditions": { "excludes_events": ["magnetic_hands", "webbed_fingers"] }
+  },
+  {
+    "id": "webbed_fingers",
+    "name": "Webbed Fingers",
+    "description": "{driver}'s fingers became partially webbed. Gloves no longer fit but their hands never slip on the wheel, even in rain.",
+    "type": "permanent",
+    "weight": 1,
+    "modifiers": { "skill": 0.04, "likability": -0.10 },
+    "conditions": { "excludes_events": ["webbed_fingers", "magnetic_hands"] }
+  },
+  {
+    "id": "incredibly_hairy",
+    "name": "Sudden Hirsutism",
+    "description": "{driver} became extremely hairy almost overnight. The helmet barely fits and the visor fogs up constantly.",
+    "type": "permanent",
+    "weight": 1,
+    "modifiers": { "likability": -0.10, "skill": -0.03 },
+    "conditions": { "excludes_events": ["incredibly_hairy"] }
+  },
+  {
+    "id": "colour_changing_eyes",
+    "name": "Colour-Changing Eyes",
+    "description": "{driver}'s eyes change colour with mood. Crimson during overtakes, cerulean on cool-down laps, worrying purple during team radio.",
+    "type": "permanent",
+    "weight": 1,
+    "modifiers": { "likability": -0.05 },
+    "conditions": { "excludes_events": ["colour_changing_eyes", "eagle_eyes", "extra_eye"] }
+  },
+
+  {
+    "id": "demonic_possession",
+    "name": "Demonic Possession",
+    "description": "{driver}'s driving became terrifyingly aggressive and their eyes occasionally flash red during interviews. The team chaplain is concerned.",
+    "type": "temporary",
+    "duration_type": "seasons",
+    "duration": 3,
+    "weight": 1,
+    "modifiers": { "skill": 0.12, "loyalty": -0.15, "likability": -0.18 },
+    "conditions": { "excludes_events": ["demonic_possession", "divine_inspiration", "angelic_dream", "deal_with_devil"] }
+  },
+  {
+    "id": "cursed_helmet",
+    "name": "Cursed Helmet",
+    "description": "{driver} bought a vintage helmet from a suspicious antiques dealer. Everyone who touches it except them gets a splitting headache.",
+    "type": "permanent",
+    "weight": 1,
+    "modifiers": { "skill": 0.05, "likability": -0.12, "loyalty": -0.08 },
+    "conditions": { "excludes_events": ["cursed_helmet"] }
+  },
+  {
+    "id": "fae_bargain",
+    "name": "Fae Bargain",
+    "description": "{driver} wandered into a fairy ring and struck a deal — otherworldly talent, but they must return when the magic fades.",
+    "type": "temporary",
+    "duration_type": "seasons",
+    "duration": 4,
+    "weight": 1,
+    "modifiers": { "skill": 0.30 },
+    "conditions": { "max_skill": 0.65, "excludes_events": ["fae_bargain", "deal_with_devil"] },
+    "on_expire": { "action": "retire", "description": "{driver} vanished into a fairy ring after the final race. The car was found idling, seat empty, with wildflowers growing through the cockpit." }
+  },
+  {
+    "id": "haunted_garage",
+    "name": "Haunted Garage",
+    "description": "{driver}'s garage is haunted by a 1950s racing driver's ghost who keeps sabotaging the telemetry and tutting at modern aero.",
+    "type": "temporary",
+    "duration_type": "seasons",
+    "duration": 2,
+    "weight": 1,
+    "modifiers": { "skill": -0.06 },
+    "conditions": { "excludes_events": ["haunted_garage"] }
+  },
+  {
+    "id": "phoenix_rebirth",
+    "name": "Phoenix Rebirth",
+    "description": "{driver} walked out of a massive fireball crash completely unscathed with a strange golden aura. Something feels different about them.",
+    "type": "permanent",
+    "weight": 1,
+    "modifiers": { "skill": 0.10, "likability": 0.15, "ambition": 0.10 },
+    "conditions": { "excludes_events": ["phoenix_rebirth"] }
+  },
+  {
+    "id": "alien_abduction",
+    "name": "Alien Abduction",
+    "description": "{driver} claims to have been abducted by aliens over winter. They returned with strange aerodynamic knowledge and a fear of bright lights.",
+    "type": "permanent",
+    "weight": 1,
+    "modifiers": { "skill": 0.08, "likability": -0.12 },
+    "conditions": { "excludes_events": ["alien_abduction"] }
+  },
+  {
+    "id": "radioactive_spider",
+    "name": "Spider Bite",
+    "description": "{driver} was bitten by a radioactive spider at a factory tour. Nothing happened, but they insist they can 'sense danger now'.",
+    "type": "permanent",
+    "weight": 1,
+    "modifiers": {},
+    "conditions": { "excludes_events": ["radioactive_spider"] }
+  },
+
+  {
+    "id": "spy_scandal",
+    "name": "Espionage Scandal",
+    "description": "{driver} was caught sneaking into a rival factory dressed as a janitor. The disguise included a fake moustache and a camera-mop.",
+    "type": "permanent",
+    "weight": 1,
+    "modifiers": { "likability": -0.30, "loyalty": -0.25 },
+    "conditions": { "excludes_events": ["spy_scandal", "career_ending_scandal"] }
+  },
+  {
+    "id": "match_fixing",
+    "name": "Match Fixing Investigation",
+    "description": "{driver} is under investigation for fixing race results through an underground betting syndicate run from a kebab shop.",
+    "type": "temporary",
+    "duration_type": "seasons",
+    "duration": 2,
+    "weight": 1,
+    "modifiers": { "likability": -0.30, "loyalty": -0.20 },
+    "conditions": { "excludes_events": ["match_fixing", "career_ending_scandal"] }
+  },
+  {
+    "id": "identity_fraud",
+    "name": "Identity Fraud",
+    "description": "{driver} has been racing under a fabricated identity for years. Nobody knows their real name, age, or nationality.",
+    "type": "permanent",
+    "weight": 1,
+    "modifiers": { "likability": -0.20, "loyalty": -0.15 },
+    "conditions": { "excludes_events": ["identity_fraud", "career_ending_scandal"] }
+  },
+  {
+    "id": "underground_racing",
+    "name": "Underground Racing Ring",
+    "description": "{driver} ran an illegal street racing league across three continents. The FIA found out when they accidentally won their own event.",
+    "type": "permanent",
+    "weight": 1,
+    "modifiers": { "likability": -0.15, "skill": 0.05 },
+    "conditions": { "excludes_events": ["underground_racing", "career_ending_scandal", "street_racing_ban"] }
+  },
+  {
+    "id": "body_double",
+    "name": "Body Double Exposed",
+    "description": "{driver} was caught using a body double for media appearances while they stayed home playing video games.",
+    "type": "temporary",
+    "duration_type": "seasons",
+    "duration": 1,
+    "weight": 1,
+    "modifiers": { "likability": -0.18 },
+    "conditions": { "excludes_events": ["body_double"] }
   }
 ]

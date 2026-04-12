@@ -101,5 +101,120 @@
     "weight": 2,
     "modifiers": { "skill": -0.04, "greed": 0.06 },
     "conditions": {}
+  },
+
+  {
+    "id": "team_principal_feud",
+    "name": "Team Boss Feud",
+    "description": "{driver} fell into a bitter personal feud with their team principal. It started over a parking spot. It's now about everything.",
+    "type": "temporary",
+    "duration_type": "seasons",
+    "duration": 2,
+    "weight": 2,
+    "modifiers": { "loyalty": -0.18, "ambition": 0.06 },
+    "conditions": { "has_team": true }
+  },
+  {
+    "id": "national_hero",
+    "name": "National Hero",
+    "description": "{driver} became a national hero and is now on a postage stamp. Their mum has bought three hundred of them.",
+    "type": "permanent",
+    "weight": 1,
+    "modifiers": { "likability": 0.20, "ambition": 0.08 },
+    "conditions": { "excludes_events": ["national_hero", "career_ending_scandal"] }
+  },
+  {
+    "id": "pay_driver_stigma",
+    "name": "Pay Driver Stigma",
+    "description": "{driver} has been labelled a 'pay driver' by the media, regardless of ability. The chip on their shoulder is growing.",
+    "type": "permanent",
+    "weight": 2,
+    "modifiers": { "likability": -0.12, "ambition": 0.10 },
+    "conditions": { "excludes_events": ["pay_driver_stigma", "national_hero", "fan_favourite"] }
+  },
+  {
+    "id": "mentor_role",
+    "name": "Mentor Role",
+    "description": "{driver} took a young academy driver under their wing and is increasingly focused on legacy over raw results.",
+    "type": "permanent",
+    "weight": 2,
+    "modifiers": { "loyalty": 0.12, "ambition": -0.10 },
+    "conditions": { "min_age": 30, "excludes_events": ["mentor_role"] }
+  },
+  {
+    "id": "gambling_debts",
+    "name": "Gambling Debts",
+    "description": "{driver} accumulated significant gambling debts and is desperately negotiating for a bigger contract.",
+    "type": "permanent",
+    "weight": 1,
+    "modifiers": { "greed": 0.20, "loyalty": -0.08 },
+    "conditions": { "excludes_events": ["gambling_debts", "wealthy_patron"] }
+  },
+  {
+    "id": "crypto_endorsement",
+    "name": "Crypto Disaster",
+    "description": "{driver} enthusiastically endorsed a cryptocurrency that immediately crashed 98%. The memes were merciless.",
+    "type": "temporary",
+    "duration_type": "seasons",
+    "duration": 1,
+    "weight": 2,
+    "modifiers": { "likability": -0.15, "greed": 0.08 },
+    "conditions": { "excludes_events": ["crypto_endorsement"] }
+  },
+  {
+    "id": "reality_tv",
+    "name": "Reality TV Star",
+    "description": "{driver} appeared on a reality TV dating show. They didn't find love but gained two million followers and a questionable catchphrase.",
+    "type": "permanent",
+    "weight": 2,
+    "modifiers": { "likability": 0.08, "greed": 0.08, "ambition": -0.05 },
+    "conditions": { "excludes_events": ["reality_tv", "social_media_influencer"] }
+  },
+  {
+    "id": "drivers_union",
+    "name": "Drivers' Union Rep",
+    "description": "{driver} became the unofficial drivers' union representative, fighting for better conditions, longer breaks, and nicer catering.",
+    "type": "permanent",
+    "weight": 2,
+    "modifiers": { "likability": 0.10, "loyalty": 0.08 },
+    "conditions": { "excludes_events": ["drivers_union"] }
+  },
+  {
+    "id": "fell_asleep_press",
+    "name": "Press Conference Nap",
+    "description": "{driver} fell asleep during a live press conference. The clip went viral and somehow made them more popular than ever.",
+    "type": "temporary",
+    "duration_type": "seasons",
+    "duration": 1,
+    "weight": 2,
+    "modifiers": { "likability": 0.10 },
+    "conditions": {}
+  },
+  {
+    "id": "fired_agent_live",
+    "name": "Fired Agent Live",
+    "description": "{driver} fired their agent in spectacular fashion during a live Instagram stream. They're now handling negotiations themselves, poorly.",
+    "type": "permanent",
+    "weight": 1,
+    "modifiers": { "greed": -0.08, "loyalty": 0.05 },
+    "conditions": { "excludes_events": ["fired_agent_live", "greedy_agent"] }
+  },
+  {
+    "id": "honorary_degree",
+    "name": "Honorary Degree",
+    "description": "{driver} received an honorary doctorate from a prestigious university and now insists everyone calls them 'Doctor'.",
+    "type": "permanent",
+    "weight": 2,
+    "modifiers": { "likability": 0.05 },
+    "conditions": { "min_age": 28, "excludes_events": ["honorary_degree"] }
+  },
+  {
+    "id": "team_shares",
+    "name": "Team Shareholder",
+    "description": "{driver} bought a small share in their team. They're now significantly more invested in the team's success — literally.",
+    "type": "permanent",
+    "weight": 1,
+    "modifiers": { "loyalty": 0.20, "greed": -0.05 },
+    "conditions": { "has_team": true, "min_age": 27, "excludes_events": ["team_shares"] }
   }
 ]

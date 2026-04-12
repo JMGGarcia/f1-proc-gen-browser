@@ -98,5 +98,357 @@
     "weight": 2,
     "modifiers": { "loyalty": -0.12, "likability": -0.12 },
     "conditions": {}
+  },
+
+  {
+    "id": "learned_piano",
+    "name": "Piano Lessons",
+    "description": "{driver} learned to play piano in the offseason. Reviews from family range from 'interesting' to 'please stop'.",
+    "type": "permanent",
+    "weight": 3,
+    "modifiers": {},
+    "conditions": { "excludes_events": ["learned_piano"] }
+  },
+  {
+    "id": "ice_cream_hobby",
+    "name": "Ice Cream Artisan",
+    "description": "{driver} learned to make artisanal ice cream at home. Pistachio is their undisputed specialty.",
+    "type": "permanent",
+    "weight": 3,
+    "modifiers": {},
+    "conditions": { "excludes_events": ["ice_cream_hobby"] }
+  },
+  {
+    "id": "bird_watching",
+    "name": "Bird Watching",
+    "description": "{driver} took up bird watching and can now identify over 200 species by call alone.",
+    "type": "permanent",
+    "weight": 3,
+    "modifiers": {},
+    "conditions": { "excludes_events": ["bird_watching"] }
+  },
+  {
+    "id": "pottery_phase",
+    "name": "Pottery Phase",
+    "description": "{driver} went through an intense pottery phase. Their garage is now full of lopsided vases nobody asked for.",
+    "type": "permanent",
+    "weight": 3,
+    "modifiers": {},
+    "conditions": { "excludes_events": ["pottery_phase"] }
+  },
+  {
+    "id": "mystery_novel",
+    "name": "Mystery Novelist",
+    "description": "{driver} wrote a murder mystery novel under a pen name. It sold eleven copies, three to their mother.",
+    "type": "permanent",
+    "weight": 3,
+    "modifiers": {},
+    "conditions": { "excludes_events": ["mystery_novel"] }
+  },
+  {
+    "id": "sourdough_obsession",
+    "name": "Sourdough Obsession",
+    "description": "{driver} got really into sourdough during the break. They named the starter after their championship rival.",
+    "type": "permanent",
+    "weight": 3,
+    "modifiers": {},
+    "conditions": { "excludes_events": ["sourdough_obsession"] }
+  },
+  {
+    "id": "chess_obsession",
+    "name": "Chess Obsession",
+    "description": "{driver} became obsessed with chess but has yet to beat anyone rated above 800 Elo.",
+    "type": "permanent",
+    "weight": 3,
+    "modifiers": {},
+    "conditions": { "excludes_events": ["chess_obsession"] }
+  },
+  {
+    "id": "cat_person",
+    "name": "Cat Person",
+    "description": "{driver} adopted seven rescue cats. Team meetings now include mandatory cat photo slideshows.",
+    "type": "permanent",
+    "weight": 3,
+    "modifiers": { "likability": 0.03 },
+    "conditions": { "excludes_events": ["cat_person"] }
+  },
+  {
+    "id": "terrible_dj",
+    "name": "DJ Career",
+    "description": "{driver} started DJing at nightclubs under an alias. The alias isn't fooling anyone and the music isn't either.",
+    "type": "permanent",
+    "weight": 3,
+    "modifiers": {},
+    "conditions": { "excludes_events": ["terrible_dj"] }
+  },
+  {
+    "id": "origami_master",
+    "name": "Origami Master",
+    "description": "{driver} became deeply invested in competitive origami. Their crane-folding time is now under eight seconds.",
+    "type": "permanent",
+    "weight": 3,
+    "modifiers": {},
+    "conditions": { "excludes_events": ["origami_master"] }
+  },
+  {
+    "id": "learned_magic",
+    "name": "Amateur Magician",
+    "description": "{driver} learned card magic and won't stop performing tricks in the paddock. Nobody has the heart to say the tricks are obvious.",
+    "type": "permanent",
+    "weight": 3,
+    "modifiers": {},
+    "conditions": { "excludes_events": ["learned_magic"] }
+  },
+  {
+    "id": "adopted_dog",
+    "name": "Rescue Dog",
+    "description": "{driver} adopted a three-legged rescue dog that has become the unofficial team mascot.",
+    "type": "permanent",
+    "weight": 3,
+    "modifiers": { "likability": 0.03 },
+    "conditions": { "excludes_events": ["adopted_dog"] }
+  },
+  {
+    "id": "terrible_tattoo",
+    "name": "Questionable Tattoo",
+    "description": "{driver} got a tattoo of their own face on their bicep. Paddock opinions range from 'no' to 'absolutely not'.",
+    "type": "permanent",
+    "weight": 3,
+    "modifiers": {},
+    "conditions": { "excludes_events": ["terrible_tattoo"] }
+  },
+  {
+    "id": "cheese_connoisseur",
+    "name": "Cheese Connoisseur",
+    "description": "{driver} became a certified cheese connoisseur and insists on bringing artisanal cheeses to every team dinner.",
+    "type": "permanent",
+    "weight": 3,
+    "modifiers": {},
+    "conditions": { "excludes_events": ["cheese_connoisseur"] }
+  },
+  {
+    "id": "soap_opera_cameo",
+    "name": "Soap Opera Cameo",
+    "description": "{driver} made a cameo on a soap opera. Their acting was described as 'wooden but endearing'.",
+    "type": "permanent",
+    "weight": 2,
+    "modifiers": { "likability": 0.03 },
+    "conditions": { "excludes_events": ["soap_opera_cameo"] }
+  },
+  {
+    "id": "bought_vineyard",
+    "name": "Vineyard Owner",
+    "description": "{driver} bought a small vineyard in Tuscany. The wine is terrible but the bottles are beautifully designed.",
+    "type": "permanent",
+    "weight": 2,
+    "modifiers": {},
+    "conditions": { "min_age": 26, "excludes_events": ["bought_vineyard"] }
+  },
+  {
+    "id": "model_trains",
+    "name": "Model Train Enthusiast",
+    "description": "{driver} revealed an extensive model train collection that occupies an entire room of their apartment.",
+    "type": "permanent",
+    "weight": 3,
+    "modifiers": {},
+    "conditions": { "excludes_events": ["model_trains"] }
+  },
+  {
+    "id": "gas_station_reviewer",
+    "name": "Gas Station Reviewer",
+    "description": "{driver} started a YouTube channel reviewing gas station food across Europe. It has a surprisingly dedicated following.",
+    "type": "permanent",
+    "weight": 2,
+    "modifiers": { "likability": 0.04 },
+    "conditions": { "excludes_events": ["gas_station_reviewer"] }
+  },
+  {
+    "id": "marathon_finish",
+    "name": "Marathon Runner",
+    "description": "{driver} ran a marathon and finished in a perfectly respectable but utterly unremarkable time.",
+    "type": "permanent",
+    "weight": 3,
+    "modifiers": {},
+    "conditions": { "excludes_events": ["marathon_finish"] }
+  },
+  {
+    "id": "scuba_certified",
+    "name": "Scuba Diver",
+    "description": "{driver} became a certified scuba diver. They now describe every racing line in terms of ocean currents.",
+    "type": "permanent",
+    "weight": 3,
+    "modifiers": {},
+    "conditions": { "excludes_events": ["scuba_certified"] }
+  },
+  {
+    "id": "treehouse_builder",
+    "name": "Treehouse Builder",
+    "description": "{driver} spent the entire offseason building an elaborate treehouse. It has better WiFi than most hotels.",
+    "type": "permanent",
+    "weight": 3,
+    "modifiers": {},
+    "conditions": { "excludes_events": ["treehouse_builder"] }
+  },
+
+  {
+    "id": "yacht_scandal",
+    "name": "Yacht Party Incident",
+    "description": "{driver} hosted a yacht party that spiraled so catastrophically, three coastal nations issued formal complaints.",
+    "type": "temporary",
+    "duration_type": "seasons",
+    "duration": 2,
+    "weight": 1,
+    "modifiers": { "likability": -0.15, "loyalty": -0.10 },
+    "conditions": { "excludes_events": ["yacht_scandal", "tabloid_scandal", "career_ending_scandal"] }
+  },
+  {
+    "id": "tax_scandal",
+    "name": "Tax Haven Exposed",
+    "description": "{driver}'s tax avoidance scheme involving seventeen shell companies and a llama farm was exposed by journalists.",
+    "type": "permanent",
+    "weight": 1,
+    "modifiers": { "likability": -0.15, "greed": 0.08 },
+    "conditions": { "excludes_events": ["tax_scandal", "career_ending_scandal"] }
+  },
+  {
+    "id": "nightclub_brawl",
+    "name": "Celebrity Brawl",
+    "description": "{driver} got into a nightclub brawl with a pop star over the last mozzarella stick. The pop star won decisively.",
+    "type": "temporary",
+    "duration_type": "seasons",
+    "duration": 1,
+    "weight": 2,
+    "modifiers": { "likability": -0.10 },
+    "conditions": { "excludes_events": ["nightclub_brawl"] }
+  },
+  {
+    "id": "leaked_texts",
+    "name": "Leaked Messages",
+    "description": "{driver}'s private messages were leaked online, revealing years of trash-talking every other driver on the grid.",
+    "type": "permanent",
+    "weight": 1,
+    "modifiers": { "likability": -0.20, "loyalty": -0.15 },
+    "conditions": { "excludes_events": ["leaked_texts", "career_ending_scandal"] }
+  },
+  {
+    "id": "fake_charity",
+    "name": "Charity Fraud",
+    "description": "{driver}'s charity was revealed to have spent 95% of donations on 'administrative costs' — namely, a superyacht.",
+    "type": "permanent",
+    "weight": 1,
+    "modifiers": { "likability": -0.25, "greed": 0.12 },
+    "conditions": { "excludes_events": ["fake_charity", "charity_work", "career_ending_scandal"] }
+  },
+  {
+    "id": "paparazzi_meltdown",
+    "name": "Paparazzi Meltdown",
+    "description": "{driver} had a public meltdown at paparazzi recorded on seventeen phones. It's been autotuned into a hit song.",
+    "type": "temporary",
+    "duration_type": "seasons",
+    "duration": 1,
+    "weight": 2,
+    "modifiers": { "likability": -0.12 },
+    "conditions": { "excludes_events": ["paparazzi_meltdown"] }
+  },
+  {
+    "id": "golf_cheating",
+    "name": "Golf Cheat",
+    "description": "{driver} was caught cheating at a celebrity golf tournament. It was only for seventh place, which somehow makes it worse.",
+    "type": "temporary",
+    "duration_type": "seasons",
+    "duration": 1,
+    "weight": 2,
+    "modifiers": { "likability": -0.08 },
+    "conditions": { "excludes_events": ["golf_cheating"] }
+  },
+  {
+    "id": "insulted_head_of_state",
+    "name": "Diplomatic Incident",
+    "description": "{driver} accidentally insulted a head of state during a podium ceremony. The FIA had to issue a formal apology.",
+    "type": "temporary",
+    "duration_type": "seasons",
+    "duration": 1,
+    "weight": 1,
+    "modifiers": { "likability": -0.15 },
+    "conditions": { "excludes_events": ["insulted_head_of_state"] }
+  },
+
+  {
+    "id": "divine_inspiration",
+    "name": "Divine Inspiration",
+    "description": "{driver} claims to have received divine inspiration during a thunderstorm. They now drive with the conviction of the truly faithful.",
+    "type": "permanent",
+    "weight": 2,
+    "modifiers": { "skill": 0.04, "ambition": 0.10, "greed": -0.10 },
+    "conditions": { "excludes_events": ["divine_inspiration", "demonic_possession"] }
+  },
+  {
+    "id": "imp_bargain",
+    "name": "Imp's Bargain",
+    "description": "A mischievous imp tricked {driver} into signing a contract written in suspiciously red ink. They've been noticeably greedier since.",
+    "type": "permanent",
+    "weight": 1,
+    "modifiers": { "greed": 0.15, "loyalty": -0.10 },
+    "conditions": { "excludes_events": ["imp_bargain", "deal_with_devil"] }
+  },
+  {
+    "id": "monastery_stay",
+    "name": "Monastery Stay",
+    "description": "{driver} spent a month living with monks in silence. They returned calmer but with a surprisingly expensive taste for monastery wine.",
+    "type": "permanent",
+    "weight": 2,
+    "modifiers": { "ambition": -0.08, "loyalty": 0.06 },
+    "conditions": { "excludes_events": ["monastery_stay", "meditation_retreat"] }
+  },
+  {
+    "id": "blessed_by_saint",
+    "name": "Saint's Blessing",
+    "description": "{driver} visited an ancient shrine and received a blessing from a local saint. Their luck has been suspiciously good since.",
+    "type": "temporary",
+    "duration_type": "seasons",
+    "duration": 2,
+    "weight": 2,
+    "modifiers": { "skill": 0.03, "likability": 0.05 },
+    "conditions": { "excludes_events": ["blessed_by_saint"] }
+  },
+  {
+    "id": "pilgrimage",
+    "name": "Pilgrimage",
+    "description": "{driver} completed an 800km pilgrimage on foot. They found inner peace and horrific blisters.",
+    "type": "permanent",
+    "weight": 2,
+    "modifiers": { "loyalty": 0.08, "ambition": -0.04 },
+    "conditions": { "excludes_events": ["pilgrimage", "meditation_retreat", "monastery_stay"] }
+  },
+  {
+    "id": "oracle_warning",
+    "name": "Oracle's Warning",
+    "description": "A roadside oracle told {driver} their career would end 'in a blaze of glory'. They've been driving cautiously ever since.",
+    "type": "temporary",
+    "duration_type": "seasons",
+    "duration": 2,
+    "weight": 1,
+    "modifiers": { "skill": -0.04, "ambition": -0.06 },
+    "conditions": { "excludes_events": ["oracle_warning"] }
+  },
+  {
+    "id": "temple_offering",
+    "name": "Temple Offering",
+    "description": "{driver} made a generous offering at a remote mountain temple and claims they can now feel the grip limits through the car's soul.",
+    "type": "permanent",
+    "weight": 2,
+    "modifiers": { "skill": 0.03 },
+    "conditions": { "excludes_events": ["temple_offering"] }
+  },
+  {
+    "id": "angelic_dream",
+    "name": "Angelic Dream",
+    "description": "{driver} had a vivid dream of an angel telling them to be kinder. They've been unsettlingly nice to everyone in the paddock.",
+    "type": "temporary",
+    "duration_type": "seasons",
+    "duration": 2,
+    "weight": 2,
+    "modifiers": { "likability": 0.12, "ambition": -0.06 },
+    "conditions": { "excludes_events": ["angelic_dream"] }
   }
 ]

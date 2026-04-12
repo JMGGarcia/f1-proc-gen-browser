@@ -143,5 +143,146 @@
     "weight": 3,
     "modifiers": { "skill": -0.09 },
     "conditions": { "excludes_events": ["crash_confidence"] }
+  },
+
+  {
+    "id": "cold_plunge_routine",
+    "name": "Cold Plunge Devotee",
+    "description": "{driver} adopted an extreme cold plunge routine, sitting in ice baths for an hour daily. They swear it works. Their lips are permanently blue.",
+    "type": "permanent",
+    "weight": 2,
+    "modifiers": { "skill": 0.03 },
+    "conditions": { "excludes_events": ["cold_plunge_routine"] }
+  },
+  {
+    "id": "hypnotherapy",
+    "name": "Hypnotherapy",
+    "description": "{driver} tried hypnotherapy to improve focus and now enters a trance-like state before every race that deeply unnerves the grid.",
+    "type": "temporary",
+    "duration_type": "seasons",
+    "duration": 2,
+    "weight": 2,
+    "modifiers": { "skill": 0.05 },
+    "conditions": { "excludes_events": ["hypnotherapy"] }
+  },
+  {
+    "id": "sleep_scientist",
+    "name": "Sleep Optimisation",
+    "description": "{driver} hired a sleep scientist and follows a rigid 26-step bedtime routine. They've never felt more rested or more boring at parties.",
+    "type": "permanent",
+    "weight": 2,
+    "modifiers": { "skill": 0.04 },
+    "conditions": { "excludes_events": ["sleep_scientist"] }
+  },
+  {
+    "id": "fighter_pilot_training",
+    "name": "Fighter Pilot Training",
+    "description": "{driver} spent the offseason training with fighter pilots and reports dramatic improvements in reaction time and G-force tolerance.",
+    "type": "temporary",
+    "duration_type": "seasons",
+    "duration": 1,
+    "weight": 2,
+    "modifiers": { "skill": 0.06 },
+    "conditions": { "excludes_events": ["fighter_pilot_training"] }
+  },
+  {
+    "id": "extreme_diet",
+    "name": "Extreme Diet",
+    "description": "{driver} adopted an extreme diet of raw fish and kelp. They've lost weight and their skin has taken on a faintly green tinge.",
+    "type": "temporary",
+    "duration_type": "seasons",
+    "duration": 1,
+    "weight": 2,
+    "modifiers": { "skill": 0.03 },
+    "conditions": {}
+  },
+  {
+    "id": "neck_training",
+    "name": "Extreme Neck Training",
+    "description": "{driver} did extreme neck-strengthening all winter. They can withstand 7G without flinching and their neck is now wider than their head.",
+    "type": "permanent",
+    "weight": 2,
+    "modifiers": { "skill": 0.04 },
+    "conditions": { "excludes_events": ["neck_training"] }
+  },
+  {
+    "id": "superstitious_ritual",
+    "name": "Pre-Race Ritual",
+    "description": "{driver} developed an elaborate 45-minute pre-race ritual involving three left turns, a specific sandwich, and a lucky sock. It does nothing.",
+    "type": "permanent",
+    "weight": 3,
+    "modifiers": {},
+    "conditions": { "excludes_events": ["superstitious_ritual"] }
+  },
+  {
+    "id": "fear_of_rain",
+    "name": "Rain Phobia",
+    "description": "{driver} developed an irrational fear of wet conditions after an offseason incident involving a garden hose. They won't discuss it.",
+    "type": "temporary",
+    "duration_type": "seasons",
+    "duration": 2,
+    "weight": 2,
+    "modifiers": { "skill": -0.06 },
+    "conditions": { "excludes_events": ["fear_of_rain"] }
+  },
+  {
+    "id": "visualization_master",
+    "name": "Visualisation Expert",
+    "description": "{driver} mastered an advanced visualisation technique and can drive a perfect lap in their mind with their eyes closed.",
+    "type": "permanent",
+    "weight": 2,
+    "modifiers": { "skill": 0.04 },
+    "conditions": { "excludes_events": ["visualization_master"] }
+  },
+  {
+    "id": "esports_crossover",
+    "name": "Esports Crossover",
+    "description": "{driver} competed in a professional esports tournament and the hand-eye coordination crossover has been genuinely remarkable.",
+    "type": "temporary",
+    "duration_type": "seasons",
+    "duration": 1,
+    "weight": 2,
+    "modifiers": { "skill": 0.04 },
+    "conditions": { "max_age": 30 }
+  },
+  {
+    "id": "yoga_devotee",
+    "name": "Yoga Devotee",
+    "description": "{driver} became a devoted yoga practitioner and is notably more flexible — and notably more annoying about telling everyone.",
+    "type": "permanent",
+    "weight": 2,
+    "modifiers": { "skill": 0.03 },
+    "conditions": { "excludes_events": ["yoga_devotee"] }
+  },
+  {
+    "id": "acupuncture",
+    "name": "Acupuncture Breakthrough",
+    "description": "{driver} credits a course of acupuncture with unlocking a new level of body awareness. Doctors are sceptical but results speak for themselves.",
+    "type": "temporary",
+    "duration_type": "seasons",
+    "duration": 1,
+    "weight": 2,
+    "modifiers": { "skill": 0.03 },
+    "conditions": {}
+  },
+  {
+    "id": "weight_loss",
+    "name": "Dramatic Weight Loss",
+    "description": "{driver} lost dramatic weight over the winter. The car is faster, but the paddock is concerned about the biscuit-only diet.",
+    "type": "temporary",
+    "duration_type": "seasons",
+    "duration": 1,
+    "weight": 2,
+    "modifiers": { "skill": 0.04 },
+    "conditions": { "excludes_events": ["weight_loss", "extreme_diet"] }
+  },
+  {
+    "id": "martial_arts",
+    "name": "Martial Arts Training",
+    "description": "{driver} earned a black belt in jiu-jitsu. Reflexes are sharper but they keep trying to armbar journalists who ask annoying questions.",
+    "type": "permanent",
+    "weight": 2,
+    "modifiers": { "skill": 0.04 },
+    "conditions": { "excludes_events": ["martial_arts"] }
   }
 ]
