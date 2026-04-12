@@ -120,12 +120,27 @@ def write_season_stats(db, engines, season_id: int, race_records, sorted_drivers
         ))
 
 
-def emit_event(db, season_num: int, event_type: str, description: str) -> None:
-    db.add(m.WorldEvent(
+def emit_event(
+    db,
+    season_num: int,
+    event_type: str,
+    description: str,
+    entities: list[tuple[str, int]] | None = None,
+) -> None:
+    event = m.WorldEvent(
         season_number=season_num,
         event_type=event_type,
         description=description,
-    ))
+    )
+    db.add(event)
+    if entities:
+        db.flush()
+        for entity_type, entity_id in entities:
+            db.add(m.WorldEventEntity(
+                event_id=event.id,
+                entity_type=entity_type,
+                entity_id=entity_id,
+            ))
 
 
 def sync_team_to_db(db, team) -> None:

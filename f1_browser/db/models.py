@@ -85,8 +85,26 @@ class Driver(Base):
     loyalty = Column(Float, nullable=True)
     greed = Column(Float, nullable=True)
     ambition = Column(Float, nullable=True)
+    likability = Column(Float, nullable=True)
     liked_tracks = Column(String, nullable=True)   # comma-separated track DB IDs
     disliked_tracks = Column(String, nullable=True)  # comma-separated track DB IDs
+
+
+class DriverModifier(Base):
+    __tablename__ = "driver_modifiers"
+
+    id                    = Column(Integer, primary_key=True, index=True)
+    driver_id             = Column(Integer, ForeignKey("drivers.id"), nullable=False, index=True)
+    event_def_id          = Column(String, nullable=False)        # JSON "id"
+    event_name            = Column(String, nullable=False)
+    modifier_json         = Column(Text, nullable=False)           # e.g. '{"skill": -0.3}'
+    modifier_type         = Column(String, nullable=False)         # "permanent" | "temporary"
+    duration_type         = Column(String, nullable=True)          # "races" | "seasons" | null
+    remaining             = Column(Integer, nullable=True)         # null for permanent
+    applied_season        = Column(Integer, nullable=False)
+    on_expire_action      = Column(String, nullable=True)          # "retire" | null
+    on_expire_description = Column(Text, nullable=True)
+    active                = Column(Boolean, default=True, nullable=False, index=True)
 
 
 class Season(Base):
@@ -232,3 +250,20 @@ class WorldEvent(Base):
     created_at = Column(DateTime, default=datetime.utcnow)
 
     race = relationship("Race")
+
+
+from sqlalchemy import Index  # noqa: E402
+
+class WorldEventEntity(Base):
+    __tablename__ = "world_event_entities"
+
+    id = Column(Integer, primary_key=True)
+    event_id = Column(Integer, ForeignKey("world_events.id"), nullable=False, index=True)
+    entity_type = Column(String, nullable=False)   # "driver"|"team"|"staff"|"engine"|"sponsor"
+    entity_id = Column(Integer, nullable=False)
+
+    event = relationship("WorldEvent", backref="entities")
+
+    __table_args__ = (
+        Index("ix_world_event_entities_type_id", "entity_type", "entity_id"),
+    )

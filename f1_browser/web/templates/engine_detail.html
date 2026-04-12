@@ -6,7 +6,7 @@
   <a href="/engines">Engines</a><span>›</span> {{ engine.name }}
 </div>
 
-{% from "macros.html" import team_badge %}
+{% from "macros.html" import team_badge, entity_events %}
 
 <div class="page-header">
   <h1>
@@ -59,4 +59,6 @@
 {% else %}
 <p>No data available.</p>
 {% endif %}
+
+{{ entity_events(events, events_page, events_total_pages, request.url.path) }}
 {% endblock %}

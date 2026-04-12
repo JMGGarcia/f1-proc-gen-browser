@@ -5,6 +5,7 @@ from db.models import Season, Team, TeamChief, TeamSeasonStats
 from db.session import get_db_session
 from sim.flags import NATIONALITY_FLAGS
 from sim.teams import ChiefRole
+from web.routes._event_helpers import get_entity_events
 from web.templates_env import templates
 
 router = APIRouter(prefix="/staff")
@@ -64,7 +65,7 @@ def staff_retired(request: Request, db: Session = Depends(get_db_session)):
 
 
 @router.get("/{chief_id}")
-def staff_detail(chief_id: int, request: Request, db: Session = Depends(get_db_session)):
+def staff_detail(chief_id: int, request: Request, db: Session = Depends(get_db_session), events_page: int = 1):
     chief = db.query(TeamChief).filter_by(id=chief_id).first()
     if not chief:
         raise HTTPException(status_code=404, detail="Staff member not found")
@@ -114,7 +115,12 @@ def staff_detail(chief_id: int, request: Request, db: Session = Depends(get_db_s
             "points": row.total_points,
         })
 
+    events, ep, total_pages = get_entity_events(db, "staff", chief_id, events_page)
+
     return templates.TemplateResponse(request, "staff_detail.html", {
         "chief": chief,
         "career": career,
+        "events": events,
+        "events_page": ep,
+        "events_total_pages": total_pages,
     })

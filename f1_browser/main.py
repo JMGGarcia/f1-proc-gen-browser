@@ -117,7 +117,11 @@ def run_simulation():
     sim_state.register(runner)
 
     with get_session() as db:
-        runner.run(db)
+        sim_state.set_busy(True)
+        try:
+            runner.run(db)
+        finally:
+            sim_state.set_busy(False)
 
     print(f"Simulation complete — {N_SEASONS} seasons written to database.")
 

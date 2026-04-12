@@ -3,8 +3,6 @@ class DriverConstants:
     RETIREMENT_AGE = 38
     EARLY_RETIREMENT_AGE = 30
     EARLY_RETIREMENT_CHANCE = 0.2
-    FORM_LOW_THRESHOLD = 0.33
-    FORM_HIGH_THRESHOLD = 0.66
     SKILL_IMPROVEMENT_RATE = 0.08
     MIN_SKILL = 0.1
     # Trait weights for driver utility scoring (must sum to 1 for normalised scores)
@@ -57,7 +55,6 @@ class SimulationConstants:
     YEARLY_CHANGE = 0.1
     HISTORY_YEARS = 5
     RACE_RANDOMNESS = 0.025
-    FORM_CHANGE = 0.05
     MAX_TEAMS_PER_ENGINE = 3
     DRIVERS_POOL = 80
     GEN_MIN_AGE = 18
@@ -122,3 +119,8 @@ class EventType(str, Enum):
     FORMULA_REVOLUTION = "formula_revolution"
     ENGINE_DEAL = "engine_deal"
     TEAM_SALE = "team_sale"
+    DRIVER_CHAMPION = "driver_champion"
+    TEAM_CHAMPION = "team_champion"
+    SPONSOR_DEAL = "sponsor_deal"
+    DRIVER_EVENT = "driver_event"
+    DRIVER_EVENT_EXPIRED = "driver_event_expired"

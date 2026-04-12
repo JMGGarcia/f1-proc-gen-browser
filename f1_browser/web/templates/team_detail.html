@@ -6,7 +6,7 @@
   <a href="/teams">Teams</a><span>›</span> {{ team.name }}
 </div>
 
-{% from "macros.html" import flag, engine_badge, team_badge %}
+{% from "macros.html" import flag, engine_badge, team_badge, entity_events %}
 
 <div class="page-header" style="border-left: 5px solid {{ team.color_primary }}; padding-left: 16px;">
   <h1>
@@ -239,4 +239,6 @@
 {% else %}
 <p>No drivers on record.</p>
 {% endif %}
+
+{{ entity_events(events, events_page, events_total_pages, request.url.path) }}
 {% endblock %}

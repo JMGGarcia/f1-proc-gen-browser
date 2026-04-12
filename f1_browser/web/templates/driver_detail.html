@@ -7,7 +7,7 @@
   {{ driver.first_name }} {{ driver.last_name }}
 </div>
 
-{% from "macros.html" import flag, team_badge, engine_badge %}
+{% from "macros.html" import flag, team_badge, engine_badge, entity_events %}
 
 <div class="page-header">
   <h1>{{ flag(driver.nationality) }} {{ driver.first_name | upper }} {{ driver.last_name | upper }}</h1>
@@ -61,10 +61,44 @@
     <div class="label">Ambition</div>
     <div class="value" style="color:{{ stat_color(driver.ambition) }}">{{ (driver.ambition * 100) | int }}</div>
   </div>
+  {% if driver.likability is not none %}
+  <div class="stat-card" title="How likable the driver is to sponsors and fans">
+    <div class="label">Likability</div>
+    <div class="value" style="color:{{ stat_color(driver.likability) }}">{{ (driver.likability * 100) | int }}</div>
+  </div>
+  {% endif %}
   {% endif %}
 </div>
 
 <h2>CAREER HISTORY</h2>
+{% if modifiers %}
+<h2>ACTIVE MODIFIERS</h2>
+<div class="modifier-tags">
+  {% for mod in modifiers %}
+  {% set is_form = mod.event_def_id in ("form_low", "form_high") %}
+  {% set has_expire_action = mod.on_expire_action %}
+  {% set tag_class = "modifier-tag " ~ ("modifier-expired" if not mod.active else ("modifier-form" if is_form else ("modifier-permanent-danger" if has_expire_action else ("modifier-permanent" if mod.modifier_type == "permanent" else "modifier-temporary")))) %}
+  <span class="{{ tag_class }}">
+    {{ mod.event_name }}
+    <span class="modifier-tooltip">
+      <strong>{{ mod.event_name }}</strong><br>
+      {% if mod.display_description %}<em style="color:#9ca3af">{{ mod.display_description }}</em><br>{% endif %}
+      {% for attr, val in mod.parsed_modifiers.items() %}
+      {{ attr | capitalize }}: {{ "%+.0f"|format(val * 100) }}<br>
+      {% endfor %}
+      {% if mod.modifier_type == "permanent" %}
+      Duration: Permanent<br>
+      {% elif mod.duration_type == "races" %}
+      Duration: {{ mod.remaining }} races left<br>
+      {% elif mod.duration_type == "seasons" %}
+      Duration: {{ mod.remaining }} season(s) left<br>
+      {% endif %}
+      Applied: Season {{ mod.applied_season }}
+    </span>
+  </span>
+  {% endfor %}
+</div>
+{% endif %}
 {% if liked_track_names or disliked_track_names %}
 <h2>CIRCUIT PREFERENCES</h2>
 <div class="stat-row">
@@ -120,4 +154,6 @@
 {% else %}
 <p>No career data available.</p>
 {% endif %}
+
+{{ entity_events(events, events_page, events_total_pages, request.url.path) }}
 {% endblock %}

@@ -1,11 +1,13 @@
 """Reconstruct in-memory sim objects from the existing database state."""
 from __future__ import annotations
 
+import json
+
 from sqlalchemy.orm import Session
 
 from db import models as m
 from sim.constants import SimulationConstants
-from sim.drivers import Driver, DriverGenerator
+from sim.drivers import Driver, DriverGenerator, ModifierSnapshot
 from sim.sponsors import Sponsor
 from sim.teams import Chief, ChiefGenerator, ChiefRole, Engine, OwnerType, Team
 from sim.tracks import Track
@@ -84,6 +86,7 @@ def load_world_from_db(db: Session, names_dir: str = "./names"):
             loyalty=d.loyalty if d.loyalty is not None else 0.5,
             greed=d.greed if d.greed is not None else 0.5,
             ambition=d.ambition if d.ambition is not None else 0.5,
+            likability=d.likability if d.likability is not None else 0.5,
         )
         drv.base_skill = skill
         drv.top_skill = top_skill
@@ -93,6 +96,32 @@ def load_world_from_db(db: Session, names_dir: str = "./names"):
             drv.disliked_track_ids = [int(x) for x in d.disliked_tracks.split(",") if x.strip()]
         drivers.append(drv)
         driver_map[d.id] = drv
+
+    # ── Load active modifiers for all drivers (single query, no N+1) ─────
+    all_active_mods = (
+        db.query(m.DriverModifier)
+        .filter_by(active=True)
+        .all()
+    )
+    for mod in all_active_mods:
+        drv = driver_map.get(mod.driver_id)
+        if drv is not None:
+            try:
+                modifier_data = json.loads(mod.modifier_json) if isinstance(mod.modifier_json, str) else (mod.modifier_json or {})
+            except (ValueError, TypeError):
+                modifier_data = {}
+            drv.active_modifiers.append(ModifierSnapshot(
+                db_id=mod.id,
+                event_def_id=mod.event_def_id,
+                event_name=mod.event_name,
+                modifier_data=modifier_data,
+                modifier_type=mod.modifier_type,
+                duration_type=mod.duration_type,
+                remaining=mod.remaining,
+                applied_season=mod.applied_season,
+                on_expire_action=mod.on_expire_action,
+                on_expire_description=mod.on_expire_description,
+            ))
 
     # ── Teams ────────────────────────────────────────────────────────────
     db_teams = db.query(m.Team).filter_by(is_active=True).order_by(m.Team.id).all()

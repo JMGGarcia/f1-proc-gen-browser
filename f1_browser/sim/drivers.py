@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import os
 import random
+from dataclasses import dataclass, field
 from typing import Dict, List, Optional, TYPE_CHECKING
 
 from sim.constants import DriverConstants, SimulationConstants
@@ -9,6 +10,22 @@ from sim.countries import get_country, get_all_countries
 
 if TYPE_CHECKING:
     from sim.countries import Country
+
+
+@dataclass
+class ModifierSnapshot:
+    """Session-agnostic snapshot of a DriverModifier row stored in driver.active_modifiers."""
+    db_id: int
+    event_def_id: str
+    event_name: str
+    modifier_data: Dict[str, float]   # pre-parsed modifiers dict
+    modifier_type: str
+    duration_type: Optional[str]
+    remaining: Optional[int]
+    applied_season: int
+    on_expire_action: Optional[str]
+    on_expire_description: Optional[str]
+    active: bool = True
 
 
 class DriverGenerator:
@@ -33,6 +50,7 @@ class DriverGenerator:
             loyalty=random.random(),
             greed=random.random(),
             ambition=random.random(),
+            likability=random.random(),
         )
         if track_ids and len(track_ids) >= 6:
             shuffled = random.sample(track_ids, 6)
@@ -76,11 +94,11 @@ class Driver:
         last_name: str,
         country: Country | str = None,
         skill: float = 0,
-        form: str = "M",
         age: int = 20,
         loyalty: float = 0.5,
         greed: float = 0.5,
         ambition: float = 0.5,
+        likability: float = 0.5,
     ):
         self.db_id = db_id
         self.first_name = first_name
@@ -96,14 +114,15 @@ class Driver:
         self.base_skill = skill
         self.skill = skill
         self.top_skill = skill
-        self.form = form
         self.age = age
         self.loyalty = loyalty
         self.greed = greed
         self.ambition = ambition
+        self.likability = likability
         self.team: Optional[object] = None  # set by Team
         self.liked_track_ids: list = []
         self.disliked_track_ids: list = []
+        self.active_modifiers: list = []  # list of db models.DriverModifier rows
     
     @property
     def nationality(self) -> str:
@@ -126,6 +145,36 @@ class Driver:
     def top_skill_100(self) -> int:
         return int(self.top_skill * 100)
 
+    def _sum_modifier(self, attr: str) -> float:
+        total = 0.0
+        for mod in self.active_modifiers:
+            total += mod.modifier_data.get(attr, 0.0)
+        return total
+
+    @property
+    def effective_skill(self) -> float:
+        return max(0.0, min(1.0, self.skill + self._sum_modifier("skill")))
+
+    @property
+    def effective_greed(self) -> float:
+        return max(0.0, min(1.0, self.greed + self._sum_modifier("greed")))
+
+    @property
+    def effective_loyalty(self) -> float:
+        return max(0.0, min(1.0, self.loyalty + self._sum_modifier("loyalty")))
+
+    @property
+    def effective_ambition(self) -> float:
+        return max(0.0, min(1.0, self.ambition + self._sum_modifier("ambition")))
+
+    @property
+    def effective_likability(self) -> float:
+        return max(0.0, min(1.0, self.likability + self._sum_modifier("likability")))
+
+    @property
+    def effective_skill_100(self) -> int:
+        return int(self.effective_skill * 100)
+
     def age_driver(self):
         self.age += 1
         if self.age <= 25:
@@ -139,12 +188,4 @@ class Driver:
         if self.base_skill > self.top_skill:
             self.top_skill = self.base_skill
 
-    def set_skill(self, form: str):
-        self.form = form
-        change = SimulationConstants.FORM_CHANGE
-        if form == "L":
-            self.skill = max(0.0, self.base_skill - change)
-        elif form == "H":
-            self.skill = min(1.0, self.base_skill + change)
-        else:
-            self.skill = self.base_skill
+

@@ -27,8 +27,33 @@
 {% endmacro %}
 
 {% macro sponsor_badge(sponsor) %}
-<span class="sponsor-badge"
-  style="background:{{ sponsor.color_primary }};color:{{ sponsor.color_secondary }}">
-  {{ sponsor.name }}
-</span>
+<a href="/sponsors/{{ sponsor.id }}">
+  <span class="sponsor-badge"
+    style="background:{{ sponsor.color_primary }};color:{{ sponsor.color_secondary }}">
+    {{ sponsor.name }}
+  </span>
+</a>
+{% endmacro %}
+
+{% macro entity_events(events, events_page, events_total_pages, base_url) %}
+<h2>EVENTS</h2>
+{% if events %}
+<ul class="event-list">
+  {% for event in events %}
+  <li class="event-item {{ event.event_type }}">
+    <div class="event-season">Season {{ event.season_number }}</div>
+    {{ event.description }}
+  </li>
+  {% endfor %}
+</ul>
+{% if events_total_pages > 1 %}
+<div class="page-nav">
+  {% if events_page > 1 %}<a href="{{ base_url }}?events_page={{ events_page - 1 }}">← Newer</a>{% endif %}
+  <span style="color:var(--muted)">Page {{ events_page }} / {{ events_total_pages }}</span>
+  {% if events_page < events_total_pages %}<a href="{{ base_url }}?events_page={{ events_page + 1 }}">Older →</a>{% endif %}
+</div>
+{% endif %}
+{% else %}
+<p style="color:var(--muted);font-size:13px">No events recorded.</p>
+{% endif %}
 {% endmacro %}

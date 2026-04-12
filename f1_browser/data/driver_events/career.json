@@ -1,0 +1,105 @@
+[
+  {
+    "id": "greedy_agent",
+    "name": "Demanding Agent",
+    "description": "{driver}'s new agent is aggressive about contract terms, pushing for maximum pay.",
+    "type": "permanent",
+    "weight": 3,
+    "modifiers": { "greed": 0.15, "loyalty": -0.10 },
+    "conditions": { "excludes_events": ["greedy_agent"] }
+  },
+  {
+    "id": "contract_standoff",
+    "name": "Contract Dispute",
+    "description": "{driver} is in a prolonged contract standoff that has created friction with the team.",
+    "type": "temporary",
+    "duration_type": "seasons",
+    "duration": 1,
+    "weight": 2,
+    "modifiers": { "loyalty": -0.15, "ambition": 0.08 },
+    "conditions": {}
+  },
+  {
+    "id": "media_controversy",
+    "name": "Media Controversy",
+    "description": "{driver} made controversial comments in the press that alienated fans.",
+    "type": "temporary",
+    "duration_type": "seasons",
+    "duration": 1,
+    "weight": 3,
+    "modifiers": { "likability": -0.20 },
+    "conditions": {}
+  },
+  {
+    "id": "wealthy_patron",
+    "name": "Wealthy Patron",
+    "description": "{driver} attracted a wealthy backer who's funding their career — no strings attached.",
+    "type": "permanent",
+    "weight": 2,
+    "modifiers": { "loyalty": 0.05, "greed": -0.10 },
+    "conditions": { "excludes_events": ["wealthy_patron"] }
+  },
+  {
+    "id": "street_racing_ban",
+    "name": "Street Racing Ban",
+    "description": "{driver} was banned from street racing activities and is revaluating their priorities.",
+    "type": "temporary",
+    "duration_type": "seasons",
+    "duration": 1,
+    "weight": 1,
+    "modifiers": { "skill": -0.05, "ambition": 0.10 },
+    "on_expire_action": null,
+    "conditions": { "excludes_events": ["street_racing_ban"] }
+  },
+  {
+    "id": "veteran_wisdom",
+    "name": "Veteran Wisdom",
+    "description": "{driver} has accumulated enough experience to manage their driving more intelligently.",
+    "type": "permanent",
+    "weight": 2,
+    "modifiers": { "loyalty": 0.12, "ambition": -0.08 },
+    "conditions": { "min_age": 32, "excludes_events": ["veteran_wisdom"] }
+  },
+  {
+    "id": "poached_engineer",
+    "name": "Key Engineer Poached",
+    "description": "{driver}'s trusted race engineer was poached by a rival team.",
+    "type": "temporary",
+    "duration_type": "seasons",
+    "duration": 1,
+    "weight": 2,
+    "modifiers": { "skill": -0.05, "loyalty": -0.08 },
+    "conditions": {}
+  },
+  {
+    "id": "brand_ambassador",
+    "name": "Brand Ambassador",
+    "description": "{driver} signed a lucrative brand ambassador deal and has developed a taste for corporate life.",
+    "type": "permanent",
+    "weight": 2,
+    "modifiers": { "greed": 0.12, "likability": 0.08 },
+    "conditions": { "excludes_events": ["brand_ambassador", "social_media_influencer"] }
+  },
+  {
+    "id": "rival_team_interest",
+    "name": "Rival Team Interest",
+    "description": "Rumours of interest from a rival team have made {driver} restless at their current outfit.",
+    "type": "temporary",
+    "duration_type": "seasons",
+    "duration": 1,
+    "weight": 3,
+    "modifiers": { "loyalty": -0.12, "ambition": 0.10 },
+    "conditions": {}
+  },
+  {
+    "id": "sponsorship_pressure",
+    "name": "Sponsor Pressure",
+    "description": "{driver}'s personal sponsor is demanding better results, creating unwanted pressure.",
+    "type": "temporary",
+    "duration_type": "seasons",
+    "duration": 1,
+    "weight": 2,
+    "modifiers": { "skill": -0.04, "greed": 0.06 },
+    "conditions": {}
+  }
+]

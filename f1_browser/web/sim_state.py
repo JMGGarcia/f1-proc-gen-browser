@@ -67,6 +67,13 @@ def is_busy() -> bool:
         return _busy
 
 
+def set_busy(value: bool) -> None:
+    """Allow external callers (e.g. initial batch sim) to hold the busy lock."""
+    global _busy
+    with _lock:
+        _busy = value
+
+
 def start_tick_loop() -> None:
     """Start the background tick loop. Called once at server startup."""
     global _tick_thread, _tick_running

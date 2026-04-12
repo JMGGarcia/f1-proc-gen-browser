@@ -1,0 +1,147 @@
+[
+  {
+    "id": "fitness_regime",
+    "name": "Fitness Regime",
+    "description": "{driver} started an intensive fitness regime and is in peak physical shape.",
+    "type": "permanent",
+    "weight": 3,
+    "modifiers": { "skill": 0.05 },
+    "conditions": { "max_age": 32, "excludes_events": ["fitness_regime"] }
+  },
+  {
+    "id": "burnout",
+    "name": "Burnout",
+    "description": "{driver} is mentally exhausted and struggling to find motivation.",
+    "type": "temporary",
+    "duration_type": "seasons",
+    "duration": 1,
+    "weight": 3,
+    "modifiers": { "skill": -0.08, "ambition": -0.10 },
+    "conditions": {}
+  },
+  {
+    "id": "personal_coach",
+    "name": "Personal Coach",
+    "description": "{driver} hired a world-class personal performance coach.",
+    "type": "permanent",
+    "weight": 2,
+    "modifiers": { "skill": 0.06 },
+    "conditions": { "max_age": 30, "excludes_events": ["personal_coach"] }
+  },
+  {
+    "id": "karting_offseason",
+    "name": "Karting Holiday",
+    "description": "{driver} spent the offseason karting and rediscovered their love of raw racecraft.",
+    "type": "temporary",
+    "duration_type": "seasons",
+    "duration": 1,
+    "weight": 2,
+    "modifiers": { "skill": 0.05 },
+    "conditions": {}
+  },
+  {
+    "id": "intense_rivalry",
+    "name": "Intense Rivalry",
+    "description": "{driver} has become locked in an intense personal rivalry that's sharpened their focus.",
+    "type": "temporary",
+    "duration_type": "seasons",
+    "duration": 2,
+    "weight": 3,
+    "modifiers": { "skill": 0.07, "loyalty": -0.05 },
+    "conditions": {}
+  },
+  {
+    "id": "data_driven",
+    "name": "Data Obsessed",
+    "description": "{driver} became obsessed with data analysis and is extracting every tenth from the car.",
+    "type": "permanent",
+    "weight": 2,
+    "modifiers": { "skill": 0.06, "ambition": 0.05 },
+    "conditions": { "excludes_events": ["data_driven"] }
+  },
+  {
+    "id": "sim_racing_addiction",
+    "name": "Sim Racing Addiction",
+    "description": "{driver} is spending every spare minute in a simulator and it's actually working.",
+    "type": "temporary",
+    "duration_type": "seasons",
+    "duration": 2,
+    "weight": 2,
+    "modifiers": { "skill": 0.05 },
+    "conditions": { "max_age": 28 }
+  },
+  {
+    "id": "young_prodigy",
+    "name": "Rising Star",
+    "description": "{driver} is talked about as one of the next great talents and is living up to the hype.",
+    "type": "temporary",
+    "duration_type": "seasons",
+    "duration": 2,
+    "weight": 2,
+    "modifiers": { "skill": 0.08, "ambition": 0.10 },
+    "conditions": { "max_age": 23 }
+  },
+  {
+    "id": "midlife_refocus",
+    "name": "Veteran Refocus",
+    "description": "{driver} has found a second wind, drawing on experience to compensate for declining pace.",
+    "type": "temporary",
+    "duration_type": "seasons",
+    "duration": 2,
+    "weight": 2,
+    "modifiers": { "skill": 0.06, "loyalty": 0.10 },
+    "conditions": { "min_age": 33, "excludes_events": ["midlife_refocus"] }
+  },
+  {
+    "id": "broken_wrist",
+    "name": "Broken Wrist",
+    "description": "{driver} suffered a broken wrist in a cycling accident and is returning to the cockpit ahead of schedule.",
+    "type": "temporary",
+    "duration_type": "seasons",
+    "duration": 1,
+    "weight": 2,
+    "modifiers": { "skill": -0.10 },
+    "conditions": { "excludes_events": ["broken_wrist"] }
+  },
+  {
+    "id": "back_injury",
+    "name": "Chronic Back Injury",
+    "description": "{driver} is managing a persistent back injury that flares up under heavy G-forces.",
+    "type": "temporary",
+    "duration_type": "seasons",
+    "duration": 2,
+    "weight": 2,
+    "modifiers": { "skill": -0.07 },
+    "conditions": { "min_age": 28, "excludes_events": ["back_injury", "broken_wrist"] }
+  },
+  {
+    "id": "eye_surgery",
+    "name": "Laser Eye Surgery",
+    "description": "{driver} got laser eye surgery and is astonished by the improvement in their vision.",
+    "type": "permanent",
+    "weight": 1,
+    "modifiers": { "skill": 0.03 },
+    "conditions": { "excludes_events": ["eye_surgery"] }
+  },
+  {
+    "id": "altitude_training",
+    "name": "Altitude Training",
+    "description": "{driver} spent the winter at high altitude and reports remarkable gains in stamina.",
+    "type": "temporary",
+    "duration_type": "seasons",
+    "duration": 1,
+    "weight": 2,
+    "modifiers": { "skill": 0.04 }
+  },
+  {
+    "id": "crash_confidence",
+    "name": "Crash Confidence Crisis",
+    "description": "{driver} walked away from a nasty shunt but is struggling to commit fully to the limit.",
+    "type": "temporary",
+    "duration_type": "seasons",
+    "duration": 1,
+    "weight": 3,
+    "modifiers": { "skill": -0.09 },
+    "conditions": { "excludes_events": ["crash_confidence"] }
+  }
+]

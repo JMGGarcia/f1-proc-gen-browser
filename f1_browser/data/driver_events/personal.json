@@ -1,0 +1,102 @@
+[
+  {
+    "id": "started_family",
+    "name": "New Family",
+    "description": "{driver} started a family and feels more settled in life.",
+    "type": "permanent",
+    "weight": 2,
+    "modifiers": { "loyalty": 0.15 },
+    "conditions": { "excludes_events": ["started_family"] }
+  },
+  {
+    "id": "personal_crisis",
+    "name": "Personal Crisis",
+    "description": "{driver} is going through a very difficult time in their personal life.",
+    "type": "temporary",
+    "duration_type": "seasons",
+    "duration": 1,
+    "weight": 3,
+    "modifiers": { "skill": -0.07, "ambition": -0.05 },
+    "conditions": { "excludes_events": ["personal_crisis"] }
+  },
+  {
+    "id": "tabloid_scandal",
+    "name": "Tabloid Scandal",
+    "description": "{driver} was caught up in a tabloid scandal that derailed their focus.",
+    "type": "temporary",
+    "duration_type": "seasons",
+    "duration": 1,
+    "weight": 2,
+    "modifiers": { "skill": -0.07, "likability": -0.15 },
+    "conditions": { "excludes_events": ["tabloid_scandal", "career_ending_scandal"] }
+  },
+  {
+    "id": "meditation_retreat",
+    "name": "Meditation Retreat",
+    "description": "{driver} went on a spiritual retreat and returned calmer and more self-aware.",
+    "type": "permanent",
+    "weight": 2,
+    "modifiers": { "loyalty": 0.08, "ambition": -0.06 },
+    "conditions": { "excludes_events": ["meditation_retreat"] }
+  },
+  {
+    "id": "charity_work",
+    "name": "Charity Commitment",
+    "description": "{driver} took on a major charity commitment and is more value-driven than ever.",
+    "type": "permanent",
+    "weight": 2,
+    "modifiers": { "loyalty": 0.08, "greed": -0.08, "likability": 0.12 },
+    "conditions": { "excludes_events": ["charity_work"] }
+  },
+  {
+    "id": "ghostwriter_book",
+    "name": "Memoir Release",
+    "description": "{driver} released a tell-all memoir that burned bridges with former associates.",
+    "type": "permanent",
+    "weight": 1,
+    "modifiers": { "loyalty": -0.10, "likability": 0.08 },
+    "conditions": { "min_age": 28, "excludes_events": ["ghostwriter_book"] }
+  },
+  {
+    "id": "therapy",
+    "name": "Therapy",
+    "description": "{driver} started therapy and it's made them surprisingly more focused.",
+    "type": "temporary",
+    "duration_type": "seasons",
+    "duration": 2,
+    "weight": 2,
+    "modifiers": { "skill": 0.02, "ambition": 0.05 },
+    "conditions": {}
+  },
+  {
+    "id": "social_media_influencer",
+    "name": "Social Media Star",
+    "description": "{driver} became a social media celebrity, loving the commercial side of racing.",
+    "type": "permanent",
+    "weight": 2,
+    "modifiers": { "greed": 0.15, "likability": 0.10 },
+    "conditions": { "max_age": 27, "excludes_events": ["social_media_influencer"] }
+  },
+  {
+    "id": "comeback_documentary",
+    "name": "Comeback Doc",
+    "description": "{driver} is the subject of a hyped comeback documentary that reignited their drive.",
+    "type": "temporary",
+    "duration_type": "seasons",
+    "duration": 1,
+    "weight": 2,
+    "modifiers": { "ambition": 0.15, "likability": 0.10 },
+    "conditions": { "excludes_events": ["comeback_documentary"] }
+  },
+  {
+    "id": "political_trouble",
+    "name": "Political Trouble",
+    "description": "{driver}'s public political comments caused a rift with the team and divided fans.",
+    "type": "temporary",
+    "duration_type": "seasons",
+    "duration": 1,
+    "weight": 2,
+    "modifiers": { "loyalty": -0.12, "likability": -0.12 },
+    "conditions": {}
+  }
+]

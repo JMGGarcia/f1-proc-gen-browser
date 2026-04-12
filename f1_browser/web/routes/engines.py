@@ -4,7 +4,7 @@ from sqlalchemy.orm import Session
 
 from db.models import Engine, EngineSeasonStats, Season, Team, TeamSeasonStats
 from db.session import get_db_session
-
+from web.routes._event_helpers import get_entity_events
 from web.templates_env import templates
 
 router = APIRouter(prefix="/engines")
@@ -57,7 +57,7 @@ def engines_list(request: Request, db: Session = Depends(get_db_session)):
 
 
 @router.get("/{engine_id}")
-def engine_detail(engine_id: int, request: Request, db: Session = Depends(get_db_session)):
+def engine_detail(engine_id: int, request: Request, db: Session = Depends(get_db_session), events_page: int = 1):
     engine = db.query(Engine).filter_by(id=engine_id).first()
     if not engine:
         raise HTTPException(status_code=404, detail="Engine not found")
@@ -102,8 +102,13 @@ def engine_detail(engine_id: int, request: Request, db: Session = Depends(get_db
 
     championship_wins = len(champ_seasons)
 
+    events, ep, total_pages = get_entity_events(db, "engine", engine_id, events_page)
+
     return templates.TemplateResponse(request, "engine_detail.html", {
         "engine": engine,
         "season_stats": season_stats,
         "championship_wins": championship_wins,
+        "events": events,
+        "events_page": ep,
+        "events_total_pages": total_pages,
     })

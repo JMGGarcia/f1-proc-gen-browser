@@ -39,7 +39,7 @@ class LapRace:
         doe = self.track.downforce_over_engine
         cod = self.track.car_over_driver
         car_perf = doe * team.chassis + (1 - doe) * team.engine.power
-        perf = cod * car_perf + (1 - cod) * driver.skill
+        perf = cod * car_perf + (1 - cod) * driver.effective_skill
         if self.track.db_id and self.track.db_id in driver.liked_track_ids:
             perf += RaceConstants.TRACK_PREFERENCE_BONUS
         elif self.track.db_id and self.track.db_id in driver.disliked_track_ids:

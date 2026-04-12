@@ -5,6 +5,7 @@ from sqlalchemy.orm import Session
 from db.models import Driver, DriverSeasonStats, Engine, EngineSeasonStats, Season, Sponsor, Team, TeamChief, TeamSeasonStats
 from db.session import get_db_session
 from sim.flags import NATIONALITY_FLAGS
+from web.routes._event_helpers import get_entity_events
 from web.templates_env import templates
 
 router = APIRouter(prefix="/teams")
@@ -103,7 +104,7 @@ def teams_former(request: Request, db: Session = Depends(get_db_session)):
 
 
 @router.get("/{team_id}")
-def team_detail(team_id: int, request: Request, db: Session = Depends(get_db_session)):
+def team_detail(team_id: int, request: Request, db: Session = Depends(get_db_session), events_page: int = 1):
     team = db.query(Team).filter_by(id=team_id).first()
     if not team:
         raise HTTPException(status_code=404, detail="Team not found")
@@ -215,6 +216,8 @@ def team_detail(team_id: int, request: Request, db: Session = Depends(get_db_ses
         if drv_champ:
             finance_level += 1
 
+    events, ep, total_pages = get_entity_events(db, "team", team_id, events_page)
+
     return templates.TemplateResponse(request, "team_detail.html", {
         "team": team,
         "season_history": season_history,
@@ -225,4 +228,7 @@ def team_detail(team_id: int, request: Request, db: Session = Depends(get_db_ses
         "finance_level": finance_level,
         "finance_base": team.finance_base,
         "chiefs_by_role": {c.role: c for c in db.query(TeamChief).filter_by(team_id=team_id, retired=False).all()},
+        "events": events,
+        "events_page": ep,
+        "events_total_pages": total_pages,
     })

@@ -7,7 +7,7 @@
   {{ chief.first_name }} {{ chief.last_name }}
 </div>
 
-{% from "macros.html" import flag, team_badge %}
+{% from "macros.html" import flag, team_badge, entity_events %}
 
 <div class="page-header">
   <h1>{{ flag(chief.nationality) }} {{ chief.first_name | upper }} {{ chief.last_name | upper }}</h1>
@@ -93,4 +93,6 @@
 {% else %}
 <p>No career data available.</p>
 {% endif %}
+
+{{ entity_events(events, events_page, events_total_pages, request.url.path) }}
 {% endblock %}

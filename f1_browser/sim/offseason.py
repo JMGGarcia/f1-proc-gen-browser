@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import os
+import json
 import random
 from typing import List, Optional, Tuple
 
@@ -12,7 +13,11 @@ from sim.constants import (
 )
 from sim.countries import get_all_countries
 from sim.db_writers import emit_event, sync_team_to_db
-from sim.drivers import Driver, DriverGenerator
+from sim.driver_events import (
+    batch_tick_race_modifiers, get_eligible_events, get_form_event_defs,
+    roll_event, tick_race_modifiers,
+)
+from sim.drivers import Driver, DriverGenerator, ModifierSnapshot
 from sim.teams import Chief, ChiefGenerator, ChiefRole, Engine, OwnerType, Team
 
 
@@ -95,11 +100,13 @@ class OffSeasonManager:
         self._match_chiefs_to_teams(db, season_num, sorted_teams)
         sorted_teams = self._check_team_sales(db, season_num, sorted_teams)
         self._age_drivers(db, season_num)
+        self._tick_modifier_durations(db, season_num)
+        self._roll_driver_events(db, season_num)
+        self._apply_driver_form(db, season_num)
         self._tweak_chassis_engine(db, season_num, season_id)
         self._teams_pick_engines(db, season_num, sorted_teams, winning_driver, winning_team)
         self._teams_pick_sponsors(db, season_num, sorted_teams)
         self._teams_pick_drivers(db, season_num, sorted_teams, winning_driver, winning_team)
-        self._tweak_driver_form()
 
     # ------------------------------------------------------------------ #
     # Position / Chiefs                                                    #
@@ -164,6 +171,7 @@ class OffSeasonManager:
             db, season_num, EventType.CHIEF_DEBUT,
             f"{new_chief.first_name} {new_chief.last_name} "
             f"(age {new_chief.age}) entered the {new_chief.role.upper()} pool.",
+            entities=[("staff", new_chief.db_id)],
         )
 
     def _update_chiefs(self, db, season_num: int, sorted_teams) -> None:
@@ -217,6 +225,7 @@ class OffSeasonManager:
                     db, season_num, EventType.CHIEF_SUCCESSION,
                     f"{team.name}: {successor.first_name} {successor.last_name} succeeded "
                     f"{chief.first_name} {chief.last_name} as team owner (age {chief.age}).",
+                    entities=[("staff", successor.db_id), ("staff", chief.db_id), ("team", team.db_id)],
                 )
 
     def _tick_chief_contracts(self, db, season_num: int) -> None:
@@ -236,12 +245,14 @@ class OffSeasonManager:
                     self._retire_chief(db, chief, season_num)
                 else:
                     # Release to free agent pool
+                    _team_db_id = team.db_id
                     db.query(m.TeamChief).filter_by(id=chief.db_id).update({"team_id": None})
                     chief.team = None
                     setattr(team, role_attr, None)
                     emit_event(
                         db, season_num, EventType.CHIEF_FREE_AGENT,
                         f"{chief.name} ({chief.role.upper()}) is now a free agent.",
+                        entities=[("staff", chief.db_id), ("team", _team_db_id)],
                     )
 
     def _match_chiefs_to_teams(self, db, season_num: int, sorted_teams) -> None:
@@ -297,6 +308,7 @@ class OffSeasonManager:
                     db, season_num, EventType.CHIEF_SIGNING,
                     f"{team.name} signed {chosen.name} as {role_str.upper()} "
                     f"(skill {chosen.skill_primary}) on a {contract}-year contract.",
+                    entities=[("staff", chosen.db_id), ("team", team.db_id)],
                 )
 
     def _compute_chief_perception(self, team: Team, candidates: List[Chief]) -> List[Chief]:
@@ -336,6 +348,7 @@ class OffSeasonManager:
                 db, season_num, EventType.DRIVER_RETIREMENT,
                 f"{driver.name} {driver.flag} retired from racing at age {driver.age} "
                 f"with a peak skill of {driver.top_skill_100}.",
+                entities=[("driver", driver.db_id)],
             )
             self._retire_driver(db, driver, season_num)
 
@@ -353,6 +366,7 @@ class OffSeasonManager:
                 db, season_num, EventType.DRIVER_RETIREMENT,
                 f"{driver.name} {driver.flag} retired from racing at age {driver.age} "
                 f"with a peak skill of {driver.top_skill_100}.",
+                entities=[("driver", driver.db_id), ("team", team.db_id)],
             )
             self._retire_driver(db, driver, season_num)
 
@@ -534,11 +548,15 @@ class OffSeasonManager:
                 f"ambition {int(driver.ambition * 100)}"
             )
             verb = "re-signed with" if stayed else "joined"
+            _transfer_entities = [("driver", driver.db_id), ("team", team.db_id)]
+            if prev_team is not None and prev_team is not team:
+                _transfer_entities.append(("team", prev_team.db_id))
             emit_event(
                 db, season_num, EventType.DRIVER_TRANSFER,
                 f"{driver.name} {driver.flag} (skill {driver.skill_100}) "
                 f"{verb} {team.name} on a {team.driver_contracts[seat_idx]}-year contract "
                 f"[{trait_note}].",
+                entities=_transfer_entities,
             )
 
     def _compute_driver_perception(self, team: Team) -> List[Driver]:
@@ -562,9 +580,9 @@ class OffSeasonManager:
         greed_score = finance / 10.0
         ambition_score = team.avg_skill_100 / 100.0
         return (
-            DriverConstants.LOYALTY_WEIGHT * driver.loyalty * loyalty_score
-            + DriverConstants.GREED_WEIGHT * driver.greed * greed_score
-            + DriverConstants.AMBITION_WEIGHT * driver.ambition * ambition_score
+            DriverConstants.LOYALTY_WEIGHT * driver.effective_loyalty * loyalty_score
+            + DriverConstants.GREED_WEIGHT * driver.effective_greed * greed_score
+            + DriverConstants.AMBITION_WEIGHT * driver.effective_ambition * ambition_score
         )
 
     def _compute_finance_level(
@@ -584,6 +602,8 @@ class OffSeasonManager:
         return finance
 
     def _retire_driver(self, db, driver: Driver, season_num: int) -> None:
+        if driver not in self.drivers:
+            return  # already retired earlier this offseason
         db.query(m.Driver).filter_by(id=driver.db_id).update({
             "retired": True,
             "retired_season": season_num,
@@ -599,6 +619,10 @@ class OffSeasonManager:
             age=new_driver.age,
             skill=new_driver.skill,
             top_skill=new_driver.top_skill,
+            loyalty=new_driver.loyalty,
+            greed=new_driver.greed,
+            ambition=new_driver.ambition,
+            likability=new_driver.likability,
             liked_tracks=",".join(str(i) for i in new_driver.liked_track_ids) if new_driver.liked_track_ids else None,
             disliked_tracks=",".join(str(i) for i in new_driver.disliked_track_ids) if new_driver.disliked_track_ids else None,
         )
@@ -609,20 +633,148 @@ class OffSeasonManager:
         emit_event(
             db, season_num, EventType.DRIVER_DEBUT,
             f"{new_driver.name} {new_driver.flag} (age {new_driver.age}) entered the driver pool.",
+            entities=[("driver", new_driver.db_id)],
         )
 
     def _tweak_driver_form(self) -> None:
+        pass  # replaced by _apply_driver_form — kept as no-op for safety
+
+    # ------------------------------------------------------------------ #
+    # Driver event system                                                  #
+    # ------------------------------------------------------------------ #
+
+    def _apply_driver_form(self, db, season_num: int) -> None:
+        """Replace old form system. Roll 25/50/25 Low/Medium/High for each team driver."""
+        form_low_def, form_high_def = get_form_event_defs()
+
         for team in self.teams:
             for driver in team.drivers:
                 if driver is None:
                     continue
-                r = random.random()
-                if r < DriverConstants.FORM_LOW_THRESHOLD:
-                    driver.set_skill("L")
-                elif r > DriverConstants.FORM_HIGH_THRESHOLD:
-                    driver.set_skill("H")
+                # Expire existing form modifiers (update DB by id)
+                for mod in list(driver.active_modifiers):
+                    if mod.event_def_id in ("form_low", "form_high"):
+                        db.query(m.DriverModifier).filter_by(id=mod.db_id).update({"active": False})
+                        driver.active_modifiers.remove(mod)
+
+                roll = random.random()
+                if roll < 0.25:
+                    chosen_def = form_low_def
+                elif roll > 0.75:
+                    chosen_def = form_high_def
                 else:
-                    driver.set_skill("M")
+                    continue  # Medium form — no modifier
+
+                db_mod = m.DriverModifier(
+                    driver_id=driver.db_id,
+                    event_def_id=chosen_def["id"],
+                    event_name=chosen_def["name"],
+                    modifier_json=json.dumps(chosen_def["modifiers"]),
+                    modifier_type=chosen_def["type"],
+                    duration_type=chosen_def.get("duration_type"),
+                    remaining=chosen_def.get("duration"),
+                    applied_season=season_num,
+                    on_expire_action=chosen_def.get("on_expire", {}).get("action"),
+                    on_expire_description=chosen_def.get("on_expire", {}).get("description"),
+                    active=True,
+                )
+                db.add(db_mod)
+                db.flush()
+                driver.active_modifiers.append(ModifierSnapshot(
+                    db_id=db_mod.id,
+                    event_def_id=chosen_def["id"],
+                    event_name=chosen_def["name"],
+                    modifier_data=chosen_def["modifiers"],
+                    modifier_type=chosen_def["type"],
+                    duration_type=chosen_def.get("duration_type"),
+                    remaining=chosen_def.get("duration"),
+                    applied_season=season_num,
+                    on_expire_action=chosen_def.get("on_expire", {}).get("action"),
+                    on_expire_description=chosen_def.get("on_expire", {}).get("description"),
+                ))
+
+    def _roll_driver_events(self, db, season_num: int) -> None:
+        """Roll at most one random event per driver (including free agents) this season."""
+        for driver in self.drivers:
+            active_ids = [mod.event_def_id for mod in driver.active_modifiers
+                          if mod.event_def_id not in ("form_low", "form_high")]
+            eligible = get_eligible_events(driver, active_ids)
+            chosen = roll_event(eligible)
+            if chosen is None:
+                continue
+
+            desc = chosen["description"].replace("{driver}", driver.name)
+            on_expire = chosen.get("on_expire") or {}
+            db_mod = m.DriverModifier(
+                driver_id=driver.db_id,
+                event_def_id=chosen["id"],
+                event_name=chosen["name"],
+                modifier_json=json.dumps(chosen["modifiers"]),
+                modifier_type=chosen["type"],
+                duration_type=chosen.get("duration_type"),
+                remaining=chosen.get("duration"),
+                applied_season=season_num,
+                on_expire_action=on_expire.get("action"),
+                on_expire_description=on_expire.get("description"),
+                active=True,
+            )
+            db.add(db_mod)
+            db.flush()
+            driver.active_modifiers.append(ModifierSnapshot(
+                db_id=db_mod.id,
+                event_def_id=chosen["id"],
+                event_name=chosen["name"],
+                modifier_data=chosen["modifiers"],
+                modifier_type=chosen["type"],
+                duration_type=chosen.get("duration_type"),
+                remaining=chosen.get("duration"),
+                applied_season=season_num,
+                on_expire_action=on_expire.get("action"),
+                on_expire_description=on_expire.get("description"),
+            ))
+            emit_event(
+                db, season_num, EventType.DRIVER_EVENT,
+                desc,
+                entities=[("driver", driver.db_id)],
+            )
+
+    def _tick_modifier_durations(self, db, season_num: int) -> None:
+        """Decrement remaining for season-based modifiers. Expire those that hit 0."""
+        for driver in self.drivers:
+            for mod in list(driver.active_modifiers):
+                if mod.duration_type != "seasons" or mod.remaining is None:
+                    continue
+                mod.remaining -= 1
+                db.query(m.DriverModifier).filter_by(id=mod.db_id).update({"remaining": mod.remaining})
+                if mod.remaining <= 0:
+                    self._expire_modifier(db, driver, mod, season_num)
+
+    def _expire_modifier(self, db, driver: Driver, mod: ModifierSnapshot, season_num: int) -> None:
+        """Mark modifier inactive, remove from in-memory list, handle end-effects."""
+        db.query(m.DriverModifier).filter_by(id=mod.db_id).update({"active": False})
+        mod.active = False
+        if mod in driver.active_modifiers:
+            driver.active_modifiers.remove(mod)
+
+        if mod.on_expire_description:
+            desc = mod.on_expire_description.replace("{driver}", driver.name)
+        else:
+            desc = f"{driver.name}'s '{mod.event_name}' modifier expired."
+
+        emit_event(
+            db, season_num, EventType.DRIVER_EVENT_EXPIRED,
+            desc,
+            entities=[("driver", driver.db_id)],
+        )
+
+        if mod.on_expire_action == "retire":
+            emit_event(
+                db, season_num, EventType.DRIVER_RETIREMENT,
+                f"{driver.name} {driver.flag} retired from racing at age {driver.age} "
+                f"with a peak skill of {driver.top_skill_100}.",
+                entities=[("driver", driver.db_id)],
+            )
+            self._retire_driver(db, driver, season_num)
 
     # ------------------------------------------------------------------ #
     # Engines                                                              #
@@ -748,6 +900,7 @@ class OffSeasonManager:
                         db, season_num, EventType.ENGINE_DEAL,
                         f"{team.name} signed a {team.engine_contract}-year engine deal with {engine.name} "
                         f"(power {int(engine.power * 100)}, reliability {int(engine.reliability * 100)}).",
+                        entities=[("team", team.db_id), ("engine", engine.db_id)],
                     )
                     break
 
@@ -765,6 +918,7 @@ class OffSeasonManager:
                         db, season_num, EventType.ENGINE_DEAL,
                         f"{team.name} signed a {team.engine_contract}-year engine deal with {engine.name} "
                         f"(power {int(engine.power * 100)}, reliability {int(engine.reliability * 100)}).",
+                        entities=[("team", team.db_id), ("engine", engine.db_id)],
                     )
                     break
 
@@ -842,14 +996,16 @@ class OffSeasonManager:
                 team.sponsor_contract = new_contract
                 db.query(m.Team).filter_by(id=team.db_id).update({"sponsor_contract": new_contract})
                 emit_event(
-                    db, season_num, EventType.ENGINE_DEAL,
+                    db, season_num, EventType.SPONSOR_DEAL,
                     f"{team.name} renewed their sponsorship deal with {expiring_sponsor.name} "
                     f"for {new_contract} more year(s).",
+                    entities=[("team", team.db_id), ("sponsor", expiring_sponsor.db_id)],
                 )
             else:
                 emit_event(
-                    db, season_num, EventType.ENGINE_DEAL,
+                    db, season_num, EventType.SPONSOR_DEAL,
                     f"{team.name}'s sponsorship deal with {expiring_sponsor.name} has ended.",
+                    entities=[("team", team.db_id), ("sponsor", expiring_sponsor.db_id)],
                 )
                 expiring_map[team] = expiring_sponsor
                 team.remove_sponsor()
@@ -900,8 +1056,9 @@ class OffSeasonManager:
                 "sponsor_contract": contract,
             })
             emit_event(
-                db, season_num, EventType.ENGINE_DEAL,
+                db, season_num, EventType.SPONSOR_DEAL,
                 f"{team.name} signed a {contract}-year sponsorship deal with {chosen.name}.",
+                entities=[("team", team.db_id), ("sponsor", chosen.db_id)],
             )
 
     # ------------------------------------------------------------------ #
@@ -1093,9 +1250,22 @@ class OffSeasonManager:
             owner_label = buyer_sponsor.name
         else:
             owner_label = "private individual"
+
+        buyer_entities = []
+        if buyer_type == OwnerType.ENGINE_SUPPLIER and buyer_engine:
+            buyer_entities = [("engine", buyer_engine.db_id)]
+        elif buyer_type == OwnerType.SPONSOR and buyer_sponsor:
+            buyer_entities = [("sponsor", buyer_sponsor.db_id)]
+
         emit_event(
             db, season_num, EventType.TEAM_SALE,
-            f"{old_team.name} was acquired by {owner_label} and rebranded as {new_name}.",
+            f"{old_team.name} ceased operations after being acquired by {owner_label}.",
+            entities=[("team", old_team.db_id)] + buyer_entities,
+        )
+        emit_event(
+            db, season_num, EventType.TEAM_SALE,
+            f"{new_name} was formed from the acquisition of {old_team.name} (by {owner_label}).",
+            entities=[("team", db_new.id)] + buyer_entities,
         )
         sync_team_to_db(db, new_team)
         return new_team

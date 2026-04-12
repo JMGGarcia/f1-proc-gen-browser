@@ -1,0 +1,26 @@
+[
+  {
+    "id": "form_low",
+    "name": "Low Form",
+    "description": "{driver} is going through a rough patch.",
+    "type": "temporary",
+    "duration_type": "seasons",
+    "duration": 1,
+    "weight": 0,
+    "is_form": true,
+    "modifiers": { "skill": -0.05 },
+    "conditions": {}
+  },
+  {
+    "id": "form_high",
+    "name": "High Form",
+    "description": "{driver} is in excellent form!",
+    "type": "temporary",
+    "duration_type": "seasons",
+    "duration": 1,
+    "weight": 0,
+    "is_form": true,
+    "modifiers": { "skill": 0.05 },
+    "conditions": {}
+  }
+]

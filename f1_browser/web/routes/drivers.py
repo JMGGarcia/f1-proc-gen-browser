@@ -2,10 +2,12 @@ from fastapi import APIRouter, Depends, HTTPException, Request
 from sqlalchemy import func
 from sqlalchemy.orm import Session
 
-from db.models import Driver, DriverSeasonStats, Engine, Race, RaceResult, Season, Team, Track
+from db.models import Driver, DriverModifier, DriverSeasonStats, Engine, Race, RaceResult, Season, Team, Track
 from db.session import get_db_session
+from sim.driver_events import get_event_def_by_id
 from sim.flags import NATIONALITY_FLAGS
 from web import sim_state
+from web.routes._event_helpers import get_entity_events
 from web.templates_env import templates
 
 router = APIRouter(prefix="/drivers")
@@ -106,7 +108,7 @@ def drivers_retired(request: Request, db: Session = Depends(get_db_session)):
 
 
 @router.get("/{driver_id}")
-def driver_detail(driver_id: int, request: Request, db: Session = Depends(get_db_session)):
+def driver_detail(driver_id: int, request: Request, db: Session = Depends(get_db_session), events_page: int = 1):
     driver = db.query(Driver).filter_by(id=driver_id).first()
     if not driver:
         raise HTTPException(status_code=404, detail="Driver not found")
@@ -152,6 +154,26 @@ def driver_detail(driver_id: int, request: Request, db: Session = Depends(get_db
         tracks = db.query(Track).filter(Track.id.in_(ids)).all()
         disliked_track_names = [t.name for t in tracks]
 
+    events, ep, total_pages = get_entity_events(db, "driver", driver_id, events_page)
+
+    # Query modifiers — active for living drivers, all (active + inactive) for retired
+    modifiers_query = db.query(DriverModifier).filter_by(driver_id=driver_id)
+    if not driver.retired:
+        modifiers_query = modifiers_query.filter_by(active=True)
+    modifiers = modifiers_query.order_by(DriverModifier.applied_season.desc()).all()
+
+    # Parse modifier_json for display
+    import json as _json
+    driver_full_name = f"{driver.first_name} {driver.last_name}"
+    for mod in modifiers:
+        try:
+            mod.parsed_modifiers = _json.loads(mod.modifier_json) if isinstance(mod.modifier_json, str) else mod.modifier_json
+        except Exception:
+            mod.parsed_modifiers = {}
+        defn = get_event_def_by_id(mod.event_def_id) or {}
+        desc_template = defn.get("description", "")
+        mod.display_description = desc_template.replace("{driver}", driver_full_name) if desc_template else ""
+
     return templates.TemplateResponse(request, "driver_detail.html", {
         "driver": driver,
         "career": career,
@@ -159,4 +181,8 @@ def driver_detail(driver_id: int, request: Request, db: Session = Depends(get_db
         "total_podiums": total_podiums,
         "liked_track_names": liked_track_names,
         "disliked_track_names": disliked_track_names,
+        "events": events,
+        "events_page": ep,
+        "events_total_pages": total_pages,
+        "modifiers": modifiers,
     })

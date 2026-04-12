@@ -181,6 +181,9 @@
     .event-item.direction_change   { border-color: #7c3aed; }
     .event-item.formula_revolution { border-color: #db2777; }
     .event-item.team_sale          { border-color: #f59e0b; }
+    .event-item.driver_champion    { border-color: #eab308; }
+    .event-item.team_champion      { border-color: #a855f7; }
+    .event-item.sponsor_deal       { border-color: #0891b2; }
 
     .event-season {
       font-size: 11px;
@@ -236,6 +239,49 @@
       margin-right: 6px;
       vertical-align: middle;
     }
+
+    /* ── Driver modifier tags ────────────────────────────────── */
+    .modifier-tags {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-bottom: 24px;
+    }
+
+    .modifier-tag {
+      position: relative;
+      display: inline-block;
+      padding: 3px 10px;
+      border-radius: 3px;
+      font-size: 12px;
+      font-weight: bold;
+      letter-spacing: 0.4px;
+      cursor: default;
+      user-select: none;
+    }
+
+    .modifier-permanent       { background: #7f1d1d; color: #fca5a5; border: 1px solid #dc2626; }
+    .modifier-permanent-danger { background: #4a1d7a; color: #d8b4fe; border: 1px solid #9333ea; }
+    .modifier-temporary       { background: #78350f; color: #fcd34d; border: 1px solid #d97706; }
+    .modifier-form            { background: #0c4a6e; color: #7dd3fc; border: 1px solid #0284c7; }
+    .modifier-expired         { background: #1f2937; color: #6b7280; border: 1px solid #374151; }
+
+    .modifier-tooltip {
+      display: none;
+      position: fixed;
+      background: #111827;
+      border: 1px solid #374151;
+      border-radius: 4px;
+      padding: 8px 12px;
+      font-size: 12px;
+      font-weight: normal;
+      color: var(--text);
+      white-space: normal;
+      max-width: 340px;
+      z-index: 9999;
+      pointer-events: none;
+      line-height: 1.7;
+    }
   </style>
 </head>
 <body>
@@ -269,5 +315,42 @@
   <main>
     {% block content %}{% endblock %}
   </main>
+  <script>
+    document.addEventListener('DOMContentLoaded', () => {
+      document.querySelectorAll('.modifier-tag').forEach(tag => {
+        const tooltip = tag.querySelector('.modifier-tooltip');
+        if (!tooltip) return;
+
+        tag.addEventListener('mouseenter', () => {
+          tooltip.style.visibility = 'hidden';
+          tooltip.style.display = 'block';
+
+          const tagRect = tag.getBoundingClientRect();
+          const ttW = tooltip.offsetWidth;
+          const ttH = tooltip.offsetHeight;
+          const margin = 10;
+
+          // Default: right-align above tag
+          let left = tagRect.right - ttW;
+          let top = tagRect.top - ttH - 6;
+
+          // Clamp horizontally within viewport
+          if (left < margin) left = margin;
+          if (left + ttW > window.innerWidth - margin) left = window.innerWidth - margin - ttW;
+
+          // If above viewport, show below instead
+          if (top < margin) top = tagRect.bottom + 6;
+
+          tooltip.style.left = left + 'px';
+          tooltip.style.top  = top  + 'px';
+          tooltip.style.visibility = '';
+        });
+
+        tag.addEventListener('mouseleave', () => {
+          tooltip.style.display = 'none';
+        });
+      });
+    });
+  </script>
 </body>
 </html>

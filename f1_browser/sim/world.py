@@ -12,6 +12,7 @@ from sim.db_writers import (
     emit_event, sync_team_to_db, write_race_results, write_race_results_for,
     write_one_race, write_season_stats,
 )
+from sim.driver_events import batch_tick_race_modifiers, tick_race_modifiers
 from sim.drivers import Driver, DriverGenerator
 from sim.flags import NATIONALITY_FLAGS
 from sim.offseason import OffSeasonManager
@@ -141,6 +142,12 @@ class WorldRunner:
 
             write_race_results_for(db, self._current_db_race_id, results)
             self._tick_race_records.append((self._current_track, results))
+
+            # Tick race-based modifiers (expire those that hit 0)
+            expired_pairs = tick_race_modifiers(self.drivers, db, self._tick_season_num)
+            for driver, mod in expired_pairs:
+                self._offseason._expire_modifier(db, driver, mod, self._tick_season_num)
+
             db.commit()
 
             driver_snap = sorted(
@@ -330,6 +337,20 @@ class WorldRunner:
         winning_driver = sorted_drivers[0][0]
         winning_team = sorted_teams[0][0]
 
+        drv_champ_entities = [("driver", winning_driver.db_id)]
+        if winning_driver.team:
+            drv_champ_entities.append(("team", winning_driver.team.db_id))
+        emit_event(
+            db, season_num, EventType.DRIVER_CHAMPION,
+            f"{driver_champion_name} won the Drivers' Championship with {driver_champion_pts} points!",
+            entities=drv_champ_entities,
+        )
+        emit_event(
+            db, season_num, EventType.TEAM_CHAMPION,
+            f"{team_champion_name} won the Constructors' Championship with {team_champion_pts} points!",
+            entities=[("team", winning_team.db_id)],
+        )
+
         self._offseason.run_offseason(db, season_num, season_id, sorted_teams, winning_driver, winning_team)
         db.commit()
         make_backup(season_num, db)
@@ -398,8 +419,27 @@ class WorldRunner:
         db.query(m.Season).filter_by(id=season_id).update({"completed": True})
         db.flush()
 
+        # Batch-tick race-based modifiers for all races in the season
+        expired_pairs = batch_tick_race_modifiers(self.drivers, db, len(self.tracks), season_num)
+        for driver, mod in expired_pairs:
+            self._offseason._expire_modifier(db, driver, mod, season_num)
+
         winning_driver = sorted_drivers[0][0]
         winning_team = sorted_teams[0][0]
+
+        drv_champ_entities = [("driver", winning_driver.db_id)]
+        if winning_driver.team:
+            drv_champ_entities.append(("team", winning_driver.team.db_id))
+        emit_event(
+            db, season_num, EventType.DRIVER_CHAMPION,
+            f"{winning_driver.first_name} {winning_driver.last_name} won the Drivers' Championship with {sorted_drivers[0][1]} points!",
+            entities=drv_champ_entities,
+        )
+        emit_event(
+            db, season_num, EventType.TEAM_CHAMPION,
+            f"{winning_team.name} won the Constructors' Championship with {sorted_teams[0][1]} points!",
+            entities=[("team", winning_team.db_id)],
+        )
 
         self._offseason.run_offseason(db, season_num, season_id, sorted_teams, winning_driver, winning_team)
         db.commit()

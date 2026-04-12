@@ -234,6 +234,7 @@ def seed_world(db, names_dir: str = "./names") -> Tuple[
             loyalty=driver.loyalty,
             greed=driver.greed,
             ambition=driver.ambition,
+            likability=driver.likability,
             liked_tracks=",".join(str(i) for i in driver.liked_track_ids) if driver.liked_track_ids else None,
             disliked_tracks=",".join(str(i) for i in driver.disliked_track_ids) if driver.disliked_track_ids else None,
         )

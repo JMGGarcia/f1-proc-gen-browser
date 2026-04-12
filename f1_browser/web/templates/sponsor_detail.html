@@ -1,0 +1,70 @@
+{% extends "base.html" %}
+{% block title %}{{ sponsor.name }} — F1 World{% endblock %}
+
+{% block content %}
+<div class="breadcrumb">
+  <a href="/sponsors">Sponsors</a><span>›</span> {{ sponsor.name }}
+</div>
+
+{% from "macros.html" import team_badge, flag, entity_events %}
+
+<div class="page-header">
+  <h1>
+    <span class="sponsor-badge"
+      style="background:{{ sponsor.color_primary }};color:{{ sponsor.color_secondary }};font-size:18px;padding:4px 14px">
+      {{ sponsor.name | upper }}
+    </span>
+  </h1>
+</div>
+
+<div class="stat-row">
+  <div class="stat-card">
+    <div class="label">Tier</div>
+    <div class="value">{{ sponsor.tier | capitalize }}</div>
+  </div>
+  <div class="stat-card">
+    <div class="label">Nationality</div>
+    <div class="value">{{ flag(sponsor.nationality) }} {{ sponsor.nationality or "—" }}</div>
+  </div>
+  <div class="stat-card">
+    <div class="label">Seasons sponsored</div>
+    <div class="value">{{ history | length }}</div>
+  </div>
+</div>
+
+<h2>SPONSORSHIP HISTORY</h2>
+{% if history %}
+<table class="data-table">
+  <thead>
+    <tr>
+      <th>Season</th>
+      <th>Team</th>
+      <th class="num">Points</th>
+      <th class="num">Position</th>
+    </tr>
+  </thead>
+  <tbody>
+    {% for row in history %}
+    <tr>
+      <td>
+        {% if row.season_obj %}
+          <a href="/seasons/{{ row.season_obj.number }}">Season {{ row.season_obj.number }}</a>
+        {% else %}—{% endif %}
+      </td>
+      <td>
+        {% if row.team_obj %}{{ team_badge(row.team_obj) }}{% else %}—{% endif %}
+      </td>
+      <td class="num">{{ row.total_points }}</td>
+      <td class="num">
+        {% if row.championship_position == 1 %}🏆 1{% elif row.championship_position %}{{ row.championship_position }}{% else %}—{% endif %}
+      </td>
+    </tr>
+    {% endfor %}
+  </tbody>
+</table>
+{% else %}
+<p>No sponsorship history available.</p>
+{% endif %}
+
+{{ entity_events(events, events_page, events_total_pages, request.url.path) }}
+{% endblock %}

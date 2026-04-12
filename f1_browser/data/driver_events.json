@@ -1,0 +1,319 @@
+[
+  {
+    "id": "form_low",
+    "name": "Low Form",
+    "description": "{driver} is going through a rough patch.",
+    "type": "temporary",
+    "duration_type": "seasons",
+    "duration": 1,
+    "weight": 0,
+    "is_form": true,
+    "modifiers": { "skill": -0.05 },
+    "conditions": {}
+  },
+  {
+    "id": "form_high",
+    "name": "High Form",
+    "description": "{driver} is in excellent form!",
+    "type": "temporary",
+    "duration_type": "seasons",
+    "duration": 1,
+    "weight": 0,
+    "is_form": true,
+    "modifiers": { "skill": 0.05 },
+    "conditions": {}
+  },
+  {
+    "id": "lost_hand_diy",
+    "name": "DIY Accident",
+    "description": "{driver} lost a hand in a DIY accident!",
+    "type": "permanent",
+    "weight": 1,
+    "modifiers": { "skill": -0.30 },
+    "conditions": { "excludes_events": ["lost_hand_diy"] }
+  },
+  {
+    "id": "greedy_agent",
+    "name": "Greedy Agent",
+    "description": "{driver} hired a greedy agent.",
+    "type": "temporary",
+    "duration_type": "races",
+    "duration": 100,
+    "weight": 2,
+    "modifiers": { "greed": 1.0 },
+    "conditions": {}
+  },
+  {
+    "id": "deal_with_devil",
+    "name": "Deal with the Devil",
+    "description": "{driver} made a deal with the devil!",
+    "type": "temporary",
+    "duration_type": "seasons",
+    "duration": 5,
+    "weight": 1,
+    "modifiers": { "skill": 0.40 },
+    "conditions": { "max_skill": 0.60, "excludes_events": ["deal_with_devil"] },
+    "on_expire": { "action": "retire", "description": "{driver} exploded as the devil came to collect." }
+  },
+  {
+    "id": "fitness_regime",
+    "name": "Fitness Regime",
+    "description": "{driver} started an intense fitness regime and is sharper than ever.",
+    "type": "temporary",
+    "duration_type": "seasons",
+    "duration": 2,
+    "weight": 4,
+    "modifiers": { "skill": 0.03 },
+    "conditions": { "excludes_events": ["burnout", "fitness_regime"] }
+  },
+  {
+    "id": "burnout",
+    "name": "Burnout",
+    "description": "{driver} is mentally exhausted after an intensive season.",
+    "type": "temporary",
+    "duration_type": "seasons",
+    "duration": 1,
+    "weight": 3,
+    "modifiers": { "skill": -0.08 },
+    "conditions": { "excludes_events": ["burnout"] }
+  },
+  {
+    "id": "personal_coach",
+    "name": "Elite Coach",
+    "description": "{driver} hired a high-profile personal coach.",
+    "type": "temporary",
+    "duration_type": "seasons",
+    "duration": 3,
+    "weight": 3,
+    "modifiers": { "skill": 0.05 },
+    "conditions": { "excludes_events": ["personal_coach"] }
+  },
+  {
+    "id": "started_family",
+    "name": "New Family",
+    "description": "{driver} started a family and feels more settled.",
+    "type": "permanent",
+    "weight": 2,
+    "modifiers": { "loyalty": 0.15 },
+    "conditions": { "excludes_events": ["started_family"] }
+  },
+  {
+    "id": "contract_standoff",
+    "name": "Contract Standoff",
+    "description": "{driver} is locked in a bitter contract dispute.",
+    "type": "temporary",
+    "duration_type": "seasons",
+    "duration": 1,
+    "weight": 3,
+    "modifiers": { "greed": 0.12, "loyalty": -0.10 },
+    "conditions": { "has_team": true, "excludes_events": ["contract_standoff"] }
+  },
+  {
+    "id": "media_controversy",
+    "name": "Media Controversy",
+    "description": "{driver} said something regrettable in an interview.",
+    "type": "temporary",
+    "duration_type": "seasons",
+    "duration": 1,
+    "weight": 3,
+    "modifiers": { "loyalty": -0.15 },
+    "conditions": {}
+  },
+  {
+    "id": "comeback_documentary",
+    "name": "Comeback Doc",
+    "description": "{driver} is the subject of a hyped comeback documentary.",
+    "type": "temporary",
+    "duration_type": "seasons",
+    "duration": 1,
+    "weight": 2,
+    "modifiers": { "ambition": 0.15 },
+    "conditions": { "excludes_events": ["comeback_documentary"] }
+  },
+  {
+    "id": "tabloid_scandal",
+    "name": "Tabloid Scandal",
+    "description": "{driver} was caught up in a tabloid scandal that derailed their focus.",
+    "type": "temporary",
+    "duration_type": "seasons",
+    "duration": 1,
+    "weight": 2,
+    "modifiers": { "skill": -0.07 },
+    "conditions": { "excludes_events": ["tabloid_scandal"] }
+  },
+  {
+    "id": "meditation_retreat",
+    "name": "Meditation Retreat",
+    "description": "{driver} went on a spiritual retreat and returned calmer.",
+    "type": "permanent",
+    "weight": 2,
+    "modifiers": { "loyalty": 0.08, "ambition": -0.06 },
+    "conditions": { "excludes_events": ["meditation_retreat"] }
+  },
+  {
+    "id": "intense_rivalry",
+    "name": "Intense Rivalry",
+    "description": "{driver} has been pushed to new heights by an intense rivalry.",
+    "type": "temporary",
+    "duration_type": "seasons",
+    "duration": 2,
+    "weight": 3,
+    "modifiers": { "skill": 0.04, "ambition": 0.10 },
+    "conditions": { "excludes_events": ["intense_rivalry"] }
+  },
+  {
+    "id": "wealthy_patron",
+    "name": "Wealthy Patron",
+    "description": "{driver} found a wealthy personal sponsor willing to fund a lucrative lifestyle.",
+    "type": "temporary",
+    "duration_type": "seasons",
+    "duration": 2,
+    "weight": 2,
+    "modifiers": { "greed": 0.20 },
+    "conditions": { "excludes_events": ["wealthy_patron"] }
+  },
+  {
+    "id": "street_racing_ban",
+    "name": "Street Racing Incident",
+    "description": "{driver} was caught street racing and had to endure intense media and team pressure.",
+    "type": "temporary",
+    "duration_type": "seasons",
+    "duration": 1,
+    "weight": 1,
+    "modifiers": { "skill": -0.05, "loyalty": -0.10 },
+    "conditions": { "excludes_events": ["street_racing_ban"] }
+  },
+  {
+    "id": "karting_offseason",
+    "name": "Karting Roots",
+    "description": "{driver} went back to karting in the offseason to rediscover their love of racing.",
+    "type": "temporary",
+    "duration_type": "seasons",
+    "duration": 1,
+    "weight": 3,
+    "modifiers": { "skill": 0.04 },
+    "conditions": { "excludes_events": ["karting_offseason"] }
+  },
+  {
+    "id": "personal_crisis",
+    "name": "Personal Crisis",
+    "description": "{driver} is going through a very difficult time in their personal life.",
+    "type": "temporary",
+    "duration_type": "seasons",
+    "duration": 1,
+    "weight": 3,
+    "modifiers": { "skill": -0.07, "ambition": -0.05 },
+    "conditions": { "excludes_events": ["personal_crisis"] }
+  },
+  {
+    "id": "veteran_wisdom",
+    "name": "Veteran Wisdom",
+    "description": "{driver} has settled into a team-first mentality in their later career.",
+    "type": "permanent",
+    "weight": 2,
+    "modifiers": { "loyalty": 0.12, "ambition": -0.10 },
+    "conditions": { "min_age": 31, "excludes_events": ["veteran_wisdom"] }
+  },
+  {
+    "id": "social_media_influencer",
+    "name": "Social Media Star",
+    "description": "{driver} became a social media celebrity and loves the commercial side of F1.",
+    "type": "permanent",
+    "weight": 2,
+    "modifiers": { "greed": 0.15 },
+    "conditions": { "max_age": 27, "excludes_events": ["social_media_influencer"] }
+  },
+  {
+    "id": "sim_racing_addiction",
+    "name": "Sim Racing Addiction",
+    "description": "{driver} has been spending too many hours on sim racing instead of training.",
+    "type": "temporary",
+    "duration_type": "seasons",
+    "duration": 1,
+    "weight": 2,
+    "modifiers": { "skill": -0.03 },
+    "conditions": { "max_age": 28 }
+  },
+  {
+    "id": "data_driven",
+    "name": "Data-Driven",
+    "description": "{driver} embraced a data-heavy approach to driving and made significant gains.",
+    "type": "permanent",
+    "weight": 2,
+    "modifiers": { "skill": 0.04 },
+    "conditions": { "max_skill": 0.70, "excludes_events": ["data_driven"] }
+  },
+  {
+    "id": "political_trouble",
+    "name": "Political Trouble",
+    "description": "{driver}'s public political comments caused a rift with the team.",
+    "type": "temporary",
+    "duration_type": "seasons",
+    "duration": 1,
+    "weight": 2,
+    "modifiers": { "loyalty": -0.12 },
+    "conditions": {}
+  },
+  {
+    "id": "broken_wrist",
+    "name": "Broken Wrist",
+    "description": "{driver} broke their wrist in a cycling accident during the offseason.",
+    "type": "temporary",
+    "duration_type": "races",
+    "duration": 8,
+    "weight": 2,
+    "modifiers": { "skill": -0.10 },
+    "conditions": { "excludes_events": ["broken_wrist", "lost_hand_diy"] }
+  },
+  {
+    "id": "therapy",
+    "name": "Therapy",
+    "description": "{driver} started therapy and it's made them surprisingly more focused.",
+    "type": "temporary",
+    "duration_type": "seasons",
+    "duration": 2,
+    "weight": 2,
+    "modifiers": { "skill": 0.02, "ambition": 0.05 },
+    "conditions": {}
+  },
+  {
+    "id": "ghostwriter_book",
+    "name": "Memoir Release",
+    "description": "{driver} released a tell-all memoir, burning bridges with former associates.",
+    "type": "permanent",
+    "weight": 1,
+    "modifiers": { "loyalty": -0.10 },
+    "conditions": { "min_age": 28, "excludes_events": ["ghostwriter_book"] }
+  },
+  {
+    "id": "charity_work",
+    "name": "Charity Commitment",
+    "description": "{driver} took on a major charity commitment and is more value-driven.",
+    "type": "permanent",
+    "weight": 2,
+    "modifiers": { "loyalty": 0.08, "greed": -0.08 },
+    "conditions": { "excludes_events": ["charity_work"] }
+  },
+  {
+    "id": "young_prodigy",
+    "name": "Young Prodigy",
+    "description": "{driver} is being hyped as the next generational talent.",
+    "type": "temporary",
+    "duration_type": "seasons",
+    "duration": 2,
+    "weight": 3,
+    "modifiers": { "ambition": 0.15 },
+    "conditions": { "max_age": 23, "excludes_events": ["young_prodigy"] }
+  },
+  {
+    "id": "midlife_refocus",
+    "name": "Midlife Refocus",
+    "description": "{driver} renewed their commitment to racing after a period of reflection.",
+    "type": "temporary",
+    "duration_type": "seasons",
+    "duration": 1,
+    "weight": 2,
+    "modifiers": { "skill": 0.06, "ambition": 0.10 },
+    "conditions": { "min_age": 30, "max_age": 35, "excludes_events": ["midlife_refocus"] }
+  }
+]
